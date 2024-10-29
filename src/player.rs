@@ -10,16 +10,13 @@ pub struct MusicPlayer {
     pub player: SharedPlayer,
 }
 
-#[allow(dead_code)]
 impl MusicPlayer {
     // Create a new MusicPlayer instance
     pub fn new() -> Self {
         let player = SharedPlayer::make();
-
-        MusicPlayer {
-            player,
-        }
+        MusicPlayer { player }
     }
+
     // Initialize the music player with shuffled songs from ./music
     pub fn init(&mut self) {
         let songs_dir = self.load_songs_from_directory("./music");
@@ -44,7 +41,6 @@ impl MusicPlayer {
         for song in songs {
             self.player.add(song);
         }
-
     }
 
     // Load songs from a given directory
@@ -56,7 +52,7 @@ impl MusicPlayer {
                 if path.is_file() {
                     if let Some(ext) = path.extension() {
                         let ext_str = ext.to_string_lossy().to_lowercase();
-                        if ext_str == "mp3" || ext_str == "wav" || ext_str == "ogg" || ext_str == "flac" || ext_str == "aac" {
+                        if ["mp3", "wav", "ogg", "flac", "aac"].contains(&ext_str.as_str()) {
                             song_paths.push(path);
                         }
                     }
@@ -86,7 +82,6 @@ impl MusicPlayer {
     pub fn clear(&mut self) {
         self.player.stop();
         self.player.clear();
-        // self.initialized = false;
     }
 
     // Show the waiting list
@@ -95,7 +90,6 @@ impl MusicPlayer {
     }
 
     // Add and play a single test song
-    #[allow(dead_code)]
     pub fn play_test_song(
         &self,
         filename: &str,

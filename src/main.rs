@@ -1,39 +1,33 @@
-use logic::game;
-use once_cell::sync::Lazy;
-use std::collections::HashMap;
+use game::GameData;
 use std::process::exit;
-use std::sync::Mutex;
-use {consts::INFO_DICT, hangman::Hangman, player::MusicPlayer};
-use termcolor::{ColorChoice, StandardStream};
-use tools::{clear, get_difficulty, get_message, get_word, print_colored_text, read_input};
+use termcolor::{ ColorChoice, StandardStream };
+use tools::{ clear, read_input };
 mod consts;
+mod game;
 mod hangman;
-mod logic;
+mod lang;
 mod player;
 mod tools;
+mod printer;
 
-static LANGUAGE: Lazy<Mutex<bool>> = Lazy::new(|| Mutex::new(false));
-static DICTIONARY: Lazy<Mutex<HashMap<u8, &'static str>>> =
-    Lazy::new(|| Mutex::new(INFO_DICT.iter().cloned().collect()));
-static DIFFICULTY: Lazy<Mutex<u8>> = Lazy::new(|| Mutex::new(4));
-static NUM_PLAYERS: Lazy<Mutex<u8>> = Lazy::new(|| Mutex::new(1));
-
-fn game_loop(music_player: MusicPlayer) {
+#[allow(unused)]
+fn game_loop() {
     let mut stdout = StandardStream::stdout(ColorChoice::Always);
     loop {
+        // Implement choosing another game
+
+        // FIXME: Implement the game selection menu and languages not dependant on the gamedata
+
         clear();
 
-        let player1 = Mutex::new(Hangman::new(get_word(), get_difficulty()));
+        let mut printer = printer::ColorfulWriter::new(None);
 
-        // Play the game
-        {
-            let mut hangman = player1.lock().unwrap();
-            game(&mut hangman, &mut stdout, &music_player);
-        }
+        let mut hangman = GameData::new(printer, false);
 
-        // Ask the user if they want to restart or exit
-        let hangman = player1.lock().unwrap();
-        print_colored_text(&mut stdout, get_message(17), hangman.color);
+        // FIXME: Send printer to the game data
+        hangman.run_game();
+        hangman.printer.print_message("RetryPrompt", None, None::<String>, false);
+
         let input = read_input().trim().to_uppercase();
 
         if input != "S" && input != "Y" {
@@ -41,19 +35,24 @@ fn game_loop(music_player: MusicPlayer) {
         }
     }
 
-    // Exit the game cleanly
+    // // Exit the game cleanly
     exit(0);
 }
 
-fn music_task() -> MusicPlayer {
-    let mut music_player = MusicPlayer::new();
-    music_player.init();
-    music_player.start_music();
-
-    music_player
-}
+// fn game_chosen(game: Game) {
+//     let printer = printer::ColorfulWriter::new(None);
+//     match game {
+//         Game::Hangman => {
+//             let mut hangman = GameData::new(printer, false);
+//             hangman.run_game();
+//         }
+//         Game::Hangman2Players => {
+//             let mut hangman2players = GameData::new(printer, true);
+//             hangman2players.run_game();
+//         }
+//     }
+// }
 
 fn main() {
-    let player = music_task();
-    game_loop(player); // Start the game loop
+    game_loop(); // Start the game loop
 }
