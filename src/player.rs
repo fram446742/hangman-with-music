@@ -69,15 +69,7 @@ impl MusicPlayer {
             }
 
             if let Some(p) = printer {
-                p.safe_print(
-                    Some(MessageKey::MusicExtracted),
-                    None,
-                    None,
-                    None,
-                    false,
-                    false,
-                    "MusicInit",
-                );
+                p.safe_print(crate::ui::SafePrintOptions { key: Some(MessageKey::MusicExtracted), text: None, color: None, extras: None, bold: false, screen: false, context: "MusicInit".to_string() });
             } else {
                 crate::logger::log_warn(
                     "Music init",
@@ -180,25 +172,9 @@ impl MusicPlayer {
         self.player.add(song);
         self.player.use_auto_play();
         if let Some(p) = printer {
-            p.safe_print(
-                Some(MessageKey::PlayingTestSong),
-                None,
-                None,
-                None,
-                false,
-                false,
-                "PlayTest",
-            );
+            p.safe_print(crate::ui::SafePrintOptions { key: Some(MessageKey::PlayingTestSong), text: None, color: None, extras: None, bold: false, screen: false, context: "PlayTest".to_string() });
             if let Ok(queue) = self.player.waiting_list().join() {
-                p.safe_print(
-                    Some(MessageKey::MusicQueue),
-                    None,
-                    None,
-                    Some(&format!("{:?}", queue)),
-                    false,
-                    false,
-                    "MusicQueue",
-                );
+                p.safe_print(crate::ui::SafePrintOptions { key: Some(MessageKey::MusicQueue), text: None, color: None, extras: Some(format!("{:?}", queue)), bold: false, screen: false, context: "MusicQueue".to_string() });
             }
         } else {
             crate::logger::log_info("Music", "Playing test song");

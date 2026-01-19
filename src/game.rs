@@ -93,37 +93,37 @@ impl GameData {
     fn finished_game(&mut self, won: bool) {
         let word = self.hangman.word().to_string();
         if won {
-            self.printer.safe_print(
-                Some(MessageKey::Congratulations),
-                None,
-                None,
-                Some(&word),
-                false,
-                true,
-                "Congratulations",
-            );
+            self.printer.safe_print(crate::ui::SafePrintOptions {
+                key: Some(MessageKey::Congratulations),
+                text: None,
+                color: None,
+                extras: Some(word.clone()),
+                bold: false,
+                screen: true,
+                context: "Congratulations".to_string(),
+            });
         } else {
-            self.printer.safe_print(
-                Some(MessageKey::GameOver),
-                None,
-                None,
-                Some(&word),
-                false,
-                true,
-                "GameOver",
-            );
+            self.printer.safe_print(crate::ui::SafePrintOptions {
+                key: Some(MessageKey::GameOver),
+                text: None,
+                color: None,
+                extras: Some(word.clone()),
+                bold: false,
+                screen: true,
+                context: "GameOver".to_string(),
+            });
         }
 
         // Continue message sits under the result message and waits for input
-        self.printer.safe_print(
-            Some(MessageKey::ContinueMessage),
-            None,
-            None,
-            None,
-            false,
-            false,
-            "ContinueMessage",
-        );
+        self.printer.safe_print(crate::ui::SafePrintOptions {
+            key: Some(MessageKey::ContinueMessage),
+            text: None,
+            color: None,
+            extras: None,
+            bold: false,
+            screen: false,
+            context: "ContinueMessage".to_string(),
+        });
         let _ = self.printer.read_input();
     }
 
@@ -139,15 +139,15 @@ impl GameData {
                 loop {
                     if let Some(c) = self.printer.read_char() {
                         if !c.is_alphabetic() {
-                            self.printer.safe_print(
-                                Some(MessageKey::InvalidCharacter),
-                                None,
-                                None,
-                                None,
-                                false,
-                                false,
-                                "InvalidCharacter",
-                            );
+                            self.printer.safe_print(crate::ui::SafePrintOptions {
+                                key: Some(MessageKey::InvalidCharacter),
+                                text: None,
+                                color: None,
+                                extras: None,
+                                bold: false,
+                                screen: false,
+                                context: "InvalidCharacter".to_string(),
+                            });
                             continue;
                         }
 
@@ -169,15 +169,15 @@ impl GameData {
             }
             Game::Hangman2Players => {
                 // two-player mode not implemented yet
-                self.printer.safe_print(
-                    Some(MessageKey::InvalidOption),
-                    None,
-                    None,
-                    None,
-                    false,
-                    false,
-                    "InvalidOption",
-                );
+                self.printer.safe_print(crate::ui::SafePrintOptions {
+                    key: Some(MessageKey::InvalidOption),
+                    text: None,
+                    color: None,
+                    extras: None,
+                    bold: false,
+                    screen: false,
+                    context: "InvalidOption".to_string(),
+                });
             }
         }
 
@@ -191,15 +191,15 @@ impl GameData {
     /// previous player's playback.
     pub fn ask_retry(&mut self) -> bool {
         self.printer.clear();
-        self.printer.safe_print(
-            Some(MessageKey::RetryPrompt),
-            None,
-            None,
-            None,
-            false,
-            false,
-            "RetryPrompt",
-        );
+        self.printer.safe_print(crate::ui::SafePrintOptions {
+            key: Some(MessageKey::RetryPrompt),
+            text: None,
+            color: None,
+            extras: None,
+            bold: false,
+            screen: false,
+            context: "RetryPrompt".to_string(),
+        });
 
         let input = self.printer.read_input().trim().to_uppercase();
         let retry = matches!(
@@ -216,24 +216,24 @@ impl GameData {
 
     pub fn main_menu(&mut self) {
         loop {
-            self.printer.safe_print(
-                Some(MessageKey::WelcomeBanner),
-                None,
-                None,
-                None,
-                false,
-                true,
-                "WelcomeBanner",
-            );
-            self.printer.safe_print(
-                Some(MessageKey::StartMessage),
-                None,
-                None,
-                None,
-                false,
-                false,
-                "StartMessage",
-            );
+            self.printer.safe_print(crate::ui::SafePrintOptions {
+                key: Some(MessageKey::WelcomeBanner),
+                text: None,
+                color: None,
+                extras: None,
+                bold: false,
+                screen: true,
+                context: "WelcomeBanner".to_string(),
+            });
+            self.printer.safe_print(crate::ui::SafePrintOptions {
+                key: Some(MessageKey::StartMessage),
+                text: None,
+                color: None,
+                extras: None,
+                bold: false,
+                screen: false,
+                context: "StartMessage".to_string(),
+            });
 
             let input = self.printer.read_input().trim().to_uppercase();
             if self.handle_main_choice(input.as_str()) {
@@ -247,24 +247,24 @@ impl GameData {
     fn handle_main_choice(&mut self, choice: &str) -> bool {
         match choice {
             "I" => {
-                self.printer.safe_print(
-                    Some(MessageKey::Instructions),
-                    None,
-                    None,
-                    None,
-                    false,
-                    true,
-                    "Instructions",
-                );
-                self.printer.safe_print(
-                    Some(MessageKey::ContinueMessage),
-                    None,
-                    None,
-                    None,
-                    false,
-                    false,
-                    "ContinueMessage",
-                );
+                self.printer.safe_print(crate::ui::SafePrintOptions {
+                    key: Some(MessageKey::Instructions),
+                    text: None,
+                    color: None,
+                    extras: None,
+                    bold: false,
+                    screen: true,
+                    context: "Instructions".to_string(),
+                });
+                self.printer.safe_print(crate::ui::SafePrintOptions {
+                    key: Some(MessageKey::ContinueMessage),
+                    text: None,
+                    color: None,
+                    extras: None,
+                    bold: false,
+                    screen: false,
+                    context: "ContinueMessage".to_string(),
+                });
                 let _ = self.printer.read_input();
                 true
             }
@@ -282,15 +282,15 @@ impl GameData {
 
     fn config(&mut self) {
         loop {
-            self.printer.safe_print(
-                Some(MessageKey::SettingsMenu),
-                None,
-                None,
-                None,
-                false,
-                true,
-                "SettingsMenu",
-            );
+            self.printer.safe_print(crate::ui::SafePrintOptions {
+                key: Some(MessageKey::SettingsMenu),
+                text: None,
+                color: None,
+                extras: None,
+                bold: false,
+                screen: true,
+                context: "SettingsMenu".to_string(),
+            });
             let input = self.printer.read_input().trim().to_uppercase();
 
             if self.handle_config_choice(input.as_str()) {
@@ -338,66 +338,98 @@ impl GameData {
     }
 
     pub fn hid(&mut self) {
-        self.printer.safe_print(
-            Some(MessageKey::InsertPassword),
-            None,
-            None,
-            None,
-            false,
-            false,
-            "InsertPassword",
-        );
+        self.printer.safe_print(crate::ui::SafePrintOptions {
+            key: Some(MessageKey::InsertPassword),
+            text: None,
+            color: None,
+            extras: None,
+            bold: false,
+            screen: false,
+            context: "InsertPassword".to_string(),
+        });
         let pass = self.printer.read_pass();
         let pass_ok = pass.eq_ignore_ascii_case("HIDDEN") || pass.eq_ignore_ascii_case("OCULTO");
 
         if pass_ok {
-            self.printer.safe_print(
-                Some(MessageKey::AccessGranted),
-                None,
-                None,
-                None,
-                false,
-                false,
-                "AccessGranted",
-            );
-            self.printer.safe_print(
-                Some(MessageKey::EasterEgg1),
-                None,
-                None,
-                None,
-                false,
-                false,
-                "EasterEgg1",
-            );
-            self.printer.safe_print(
-                None,
-                Some(EASTEREGG),
-                None,
-                None,
-                false,
-                true,
-                "EasterEgg",
-            );
-            self.printer.safe_print(
-                Some(MessageKey::ContinueMessage),
-                None,
-                None,
-                None,
-                false,
-                false,
-                "ContinueMessage",
-            );
+            self.printer.safe_print(crate::ui::SafePrintOptions {
+                key: Some(MessageKey::AccessGranted),
+                text: None,
+                color: None,
+                extras: None,
+                bold: false,
+                screen: false,
+                context: "AccessGranted".to_string(),
+            });
+            self.printer.safe_print(crate::ui::SafePrintOptions {
+                key: Some(MessageKey::EasterEgg1),
+                text: None,
+                color: None,
+                extras: None,
+                bold: false,
+                screen: false,
+                context: "EasterEgg1".to_string(),
+            });
+            self.printer.safe_print(crate::ui::SafePrintOptions {
+                key: None,
+                text: Some(EASTEREGG.to_string()),
+                color: None,
+                extras: None,
+                bold: false,
+                screen: true,
+                context: "EasterEgg".to_string(),
+            });
+            self.printer.safe_print(crate::ui::SafePrintOptions {
+                key: Some(MessageKey::ContinueMessage),
+                text: None,
+                color: None,
+                extras: None,
+                bold: false,
+                screen: false,
+                context: "ContinueMessage".to_string(),
+            });
             let _ = self.printer.read_input();
 
             let mut rng = rand::rng();
             if rng.random_range(0..=5) == 5 {
-                self.printer.safe_print(None, Some(EASTEREGG2), None, None, false, false, "EasterEgg2");
-                self.printer.safe_print(Some(MessageKey::EasterEgg2), None, None, None, false, false, "EasterEgg2");
+                self.printer.safe_print(crate::ui::SafePrintOptions {
+                    key: None,
+                    text: Some(EASTEREGG2.to_string()),
+                    color: None,
+                    extras: None,
+                    bold: false,
+                    screen: false,
+                    context: "EasterEgg2".to_string(),
+                });
+                self.printer.safe_print(crate::ui::SafePrintOptions {
+                    key: Some(MessageKey::EasterEgg2),
+                    text: None,
+                    color: None,
+                    extras: None,
+                    bold: false,
+                    screen: false,
+                    context: "EasterEgg2".to_string(),
+                });
                 let _ = self.printer.read_input();
             }
         } else {
-            self.printer.safe_print(Some(MessageKey::AccessDenied), None, None, None, false, false, "AccessDenied");
-            self.printer.safe_print(Some(MessageKey::ContinueMessage), None, None, None, false, false, "ContinueMessage");
+            self.printer.safe_print(crate::ui::SafePrintOptions {
+                key: Some(MessageKey::AccessDenied),
+                text: None,
+                color: None,
+                extras: None,
+                bold: false,
+                screen: false,
+                context: "AccessDenied".to_string(),
+            });
+            self.printer.safe_print(crate::ui::SafePrintOptions {
+                key: Some(MessageKey::ContinueMessage),
+                text: None,
+                color: None,
+                extras: None,
+                bold: false,
+                screen: false,
+                context: "ContinueMessage".to_string(),
+            });
             let _ = self.printer.read_input();
         }
     }
@@ -409,39 +441,47 @@ impl GameData {
     }
 
     fn set_players(&mut self) {
-        self.printer.safe_print(Some(MessageKey::PlayersMenu), None, None, None, false, true, "PlayersMenu");
+        self.printer.safe_print(crate::ui::SafePrintOptions { key: Some(MessageKey::PlayersMenu), text: None, color: None, extras: None, bold: false, screen: true, context: "PlayersMenu".to_string() });
 
         loop {
             let input = self.printer.read_input().trim().to_uppercase();
             match input.as_str() {
                 "1" => {
                     self.game = Game::Hangman;
-                    self.printer.safe_print(
-                        Some(MessageKey::ContinueMessage),
-                        None,
-                        None,
-                        None,
-                        false,
-                        false,
-                        "ContinueMessage",
-                    );
+                    self.printer.safe_print(crate::ui::SafePrintOptions {
+                        key: Some(MessageKey::ContinueMessage),
+                        text: None,
+                        color: None,
+                        extras: None,
+                        bold: false,
+                        screen: false,
+                        context: "ContinueMessage".to_string(),
+                    });
                     break;
                 }
                 "2" => {
                     self.game = Game::Hangman2Players;
-                    self.printer.safe_print(
-                        Some(MessageKey::ContinueMessage),
-                        None,
-                        None,
-                        None,
-                        false,
-                        false,
-                        "ContinueMessage",
-                    );
+                    self.printer.safe_print(crate::ui::SafePrintOptions {
+                        key: Some(MessageKey::ContinueMessage),
+                        text: None,
+                        color: None,
+                        extras: None,
+                        bold: false,
+                        screen: false,
+                        context: "ContinueMessage".to_string(),
+                    });
                     break;
                 }
                 _ => {
-                    self.printer.safe_print(Some(MessageKey::InvalidOption), None, None, None, false, false, "InvalidOption");
+                    self.printer.safe_print(crate::ui::SafePrintOptions {
+                        key: Some(MessageKey::InvalidOption),
+                        text: None,
+                        color: None,
+                        extras: None,
+                        bold: false,
+                        screen: false,
+                        context: "InvalidOption".to_string(),
+                    });
                 }
             }
         }
@@ -463,7 +503,7 @@ impl GameData {
 
     /// Selección interactiva de dificultad (usa la `printer` proporcionada).
     fn select_difficulty(printer: &mut dyn GameUI) -> u8 {
-        printer.safe_print(Some(MessageKey::DifficultyMenu), None, None, None, false, true, "DifficultyMenu");
+        printer.safe_print(crate::ui::SafePrintOptions { key: Some(MessageKey::DifficultyMenu), text: None, color: None, extras: None, bold: false, screen: true, context: "DifficultyMenu".to_string() });
 
         loop {
             let input = printer.read_input();
@@ -474,7 +514,7 @@ impl GameData {
                 "3" => DifficultyLevel::Hard,
                 "4" => DifficultyLevel::Insane,
                 _ => {
-                    printer.safe_print(Some(MessageKey::InvalidOption), None, None, None, false, false, "InvalidOption");
+                    printer.safe_print(crate::ui::SafePrintOptions { key: Some(MessageKey::InvalidOption), text: None, color: None, extras: None, bold: false, screen: false, context: "InvalidOption".to_string() });
                     continue;
                 }
             };

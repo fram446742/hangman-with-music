@@ -4,7 +4,16 @@ use termcolor::Color;
 use crate::lang::LanguageData;
 use crate::messages::MessageKey;
 
-pub type PrintingOptions = (Option<MessageKey>, Option<&'static str>, Option<Color>, Option<&'static str>, bool);
+/// Options for a centralized safe print call. Using a struct reduces argument count and simplifies extensions.
+pub struct SafePrintOptions {
+    pub key: Option<MessageKey>,
+    pub text: Option<String>,
+    pub color: Option<Color>,
+    pub extras: Option<String>,
+    pub bold: bool,
+    pub screen: bool,
+    pub context: String,
+}
 
 /// Trait que representa la interfaz de entrada/salida usada por la lógica del juego.
 /// Permite reemplazar la UI (consola, pruebas, UI gráfica) sin tocar la lógica.
@@ -18,31 +27,24 @@ pub trait GameUI {
     ) -> Result<()>;
     fn print_colored(&mut self, text: &str, color: Option<Color>, bold: bool) -> Result<()>;
 
-    /// Centralized safe printing helper. Use `key` for localized messages or `text` for raw text printing.
-    /// `screen` indicates whether to clear the screen before printing.
-    fn safe_print(
-        &mut self,
-        key: Option<MessageKey>,
-        text: Option<&str>,
-        color: Option<Color>,
-        extras: Option<&str>,
-        bold: bool,
-        screen: bool,
-        context: &str,
-    ) {
-        if screen {
+    /// Centralized safe printing helper that takes a single options struct.
+    fn safe_print(&mut self, opts: SafePrintOptions) {
+        if opts.screen {
             self.clear();
         }
 
-        let res = match (key, text) {
-            (Some(k), None) => self.print_message(k, color, extras, bold),
-            (None, Some(t)) => self.print_colored(t, color, bold),
-            (Some(k), Some(t)) => self.print_message(k, color, Some(t), bold),
-            (None, None) => return, // nothing to print
+        let res = match (opts.key, opts.text.as_deref()) {
+            (Some(k), None) => self.print_message(k, opts.color, opts.extras.as_deref(), opts.bold),
+            (None, Some(t)) => self.print_colored(t, opts.color, opts.bold),
+            (Some(k), Some(t)) => self.print_message(k, opts.color, Some(t), opts.bold),
+            (None, None) => return,
         };
 
         if let Err(e) = res {
-            crate::logger::log_error(&format!("Failed to print {}", context), &format!("{}", e));
+            crate::logger::log_error(
+                &format!("Failed to print {}", opts.context),
+                &format!("{}", e),
+            );
         }
     }
 
@@ -55,11 +57,27 @@ pub trait GameUI {
         bold: bool,
         context: &str,
     ) {
-        self.safe_print(Some(key), None, color, extras, bold, false, context);
+        self.safe_print(SafePrintOptions {
+            key: Some(key),
+            text: None,
+            color,
+            extras: extras.map(|s| s.to_string()),
+            bold,
+            screen: false,
+            context: context.to_string(),
+        });
     }
 
     fn safe_print_colored(&mut self, text: &str, color: Option<Color>, bold: bool, context: &str) {
-        self.safe_print(None, Some(text), color, None, bold, false, context);
+        self.safe_print(SafePrintOptions {
+            key: None,
+            text: Some(text.to_string()),
+            color,
+            extras: None,
+            bold,
+            screen: false,
+            context: context.to_string(),
+        });
     }
 
     fn safe_print_screen_message(
@@ -70,7 +88,15 @@ pub trait GameUI {
         bold: bool,
         context: &str,
     ) {
-        self.safe_print(Some(key), None, color, extras, bold, true, context);
+        self.safe_print(SafePrintOptions {
+            key: Some(key),
+            text: None,
+            color,
+            extras: extras.map(|s| s.to_string()),
+            bold,
+            screen: true,
+            context: context.to_string(),
+        });
     }
 
     fn safe_print_colored_screen(
@@ -80,7 +106,15 @@ pub trait GameUI {
         bold: bool,
         context: &str,
     ) {
-        self.safe_print(None, Some(text), color, None, bold, true, context);
+        self.safe_print(SafePrintOptions {
+            key: None,
+            text: Some(text.to_string()),
+            color,
+            extras: None,
+            bold,
+            screen: true,
+            context: context.to_string(),
+        });
     }
 
     fn read_input(&self) -> String;

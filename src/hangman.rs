@@ -115,10 +115,26 @@ impl Hangman {
         // Determine stage index based on remaining lives (progress from 0)
         let idx = self.initial_lives.saturating_sub(self.lives) as usize;
         let stage = self.stages.get(idx).unwrap_or(&STAGE_0);
-        printer.safe_print(None, Some(stage), None, None, false, false, "stage");
+        printer.safe_print(crate::ui::SafePrintOptions {
+            key: None,
+            text: Some(stage.to_string()),
+            color: None,
+            extras: None,
+            bold: false,
+            screen: false,
+            context: "stage".to_string(),
+        });
 
         if let Some(msg) = message {
-            printer.safe_print(Some(msg), None, None, None, false, false, "message");
+            printer.safe_print(crate::ui::SafePrintOptions {
+                key: Some(msg),
+                text: None,
+                color: None,
+                extras: None,
+                bold: false,
+                screen: false,
+                context: "message".to_string(),
+            });
         }
 
         // Create a spaced representation for display, e.g. "_ A _ B"
@@ -128,37 +144,37 @@ impl Hangman {
             .map(|c| c.to_string())
             .collect::<Vec<_>>()
             .join(" ");
-        printer.safe_print(
-            Some(MessageKey::WordDisplay),
-            None,
-            None,
-            Some(&display_hidden),
-            false,
-            false,
-            "WordDisplay",
-        );
-        printer.safe_print(
-            Some(MessageKey::Lives),
-            None,
-            None,
-            Some(&self.lives.to_string()),
-            false,
-            false,
-            "Lives",
-        );
+        printer.safe_print(crate::ui::SafePrintOptions {
+            key: Some(MessageKey::WordDisplay),
+            text: None,
+            color: None,
+            extras: Some(display_hidden),
+            bold: false,
+            screen: false,
+            context: "WordDisplay".to_string(),
+        });
+        printer.safe_print(crate::ui::SafePrintOptions {
+            key: Some(MessageKey::Lives),
+            text: None,
+            color: None,
+            extras: Some(self.lives.to_string()),
+            bold: false,
+            screen: false,
+            context: "Lives".to_string(),
+        });
 
         let mut guessed: Vec<char> = self.history.iter().copied().collect();
         guessed.sort();
         let guessed_str = guessed.into_iter().collect::<String>();
-        printer.safe_print(
-            Some(MessageKey::GuessedLetters),
-            None,
-            None,
-            Some(&guessed_str),
-            false,
-            false,
-            "GuessedLetters",
-        );
+        printer.safe_print(crate::ui::SafePrintOptions {
+            key: Some(MessageKey::GuessedLetters),
+            text: None,
+            color: None,
+            extras: Some(guessed_str),
+            bold: false,
+            screen: false,
+            context: "GuessedLetters".to_string(),
+        });
     }
 
     pub fn is_won(&self) -> bool {
