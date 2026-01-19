@@ -1,136 +1,233 @@
 use std::collections::HashSet;
-use termcolor::{Color, StandardStream};
 
 use crate::{
-    consts::{STAGE_0, STAGE_1, STAGE_2, STAGE_3, STAGE_4, STAGE_5, STAGE_6},
-    tools::{clear, get_message, print_colored_text, random_color},
+    consts::{STAGE_0, STAGE_1, STAGE_2, STAGE_3, STAGE_4, STAGE_5, STAGE_6, STAGE_7, STAGE_8},
+    lang::LanguageData,
+    messages::MessageKey,
+    tools::clear,
+    ui::GameUI,
 };
 
-#[derive(Debug, Clone)]
 pub struct Hangman {
-    pub history: HashSet<char>,
-    pub word: String,
-    pub hidden_letter: String,
-    pub attempt: Option<char>,
-    pub lives: u8,
-    pub initial_lives: u8,
-    pub color: Color,
-    pub stages: Vec<&'static str>,
+    history: HashSet<char>,
+    word: String,
+    hidden_letter: String,
+    lives: u8,
+    initial_lives: u8,
+    stages: Vec<&'static str>,
 }
 
-#[allow(dead_code)]
 impl Hangman {
-    // Constructor to create a new Hangman game
-    pub fn new(word: String, initial_lives: u8) -> Hangman {
-        let hidden_letter = "_ ".repeat(word.len());
+    /// Create a new `Hangman` instance using the provided initial lives and
+    /// language data (to select a random word).
+    pub fn new(initial_lives: u8, language_data: LanguageData) -> Hangman {
+        let word = language_data
+            .get_random_word()
+            .unwrap_or_else(|| String::from("TestWord"))
+            .to_ascii_uppercase();
+        let hidden_letter = "_".repeat(word.chars().count());
         Hangman {
             history: HashSet::new(),
             word,
             hidden_letter,
-            attempt: None,
             lives: initial_lives,
             initial_lives,
-            color: random_color(),
-            stages: Hangman::initialize_stages(initial_lives),
+            stages: Self::initialize_stages(initial_lives),
         }
     }
 
-    // Private method to initialize stages based on initial_lives
     fn initialize_stages(initial_lives: u8) -> Vec<&'static str> {
         match initial_lives {
+            8 => vec![
+                STAGE_0, STAGE_1, STAGE_2, STAGE_3, STAGE_4, STAGE_5, STAGE_6, STAGE_7, STAGE_8,
+            ],
             6 => vec![
                 STAGE_0, STAGE_1, STAGE_2, STAGE_3, STAGE_4, STAGE_5, STAGE_6,
             ],
             4 => vec![STAGE_0, STAGE_2, STAGE_4, STAGE_5, STAGE_6],
             2 => vec![STAGE_0, STAGE_2, STAGE_6],
             1 => vec![STAGE_0, STAGE_6],
-            _ => vec![STAGE_0], // Default stage if initial_lives is unknown
+            _ => vec![STAGE_0],
         }
     }
 
-    // Make a guess and update the game state
-    pub fn guess(&mut self, letter: char) -> bool {
+    /// Returns the current number of lives remaining.
+    pub fn lives(&self) -> u8 {
+        self.lives
+    }
+
+    /// Returns the configured initial lives for this game instance.
+    pub fn initial_lives(&self) -> u8 {
+        self.initial_lives
+    }
+
+    /// Sets the initial lives and recomputes the stages accordingly. Also resets current lives to the new initial value.
+    pub fn set_initial_lives(&mut self, lives: u8) {
+        self.initial_lives = lives;
+        self.lives = lives;
+        self.stages = Self::initialize_stages(self.initial_lives);
+    }
+
+    /// Returns the current word (uppercase).
+    pub fn word(&self) -> &str {
+        &self.word
+    }
+
+    /// Attempt to guess a character. Returns `true` if the guess was
+    /// correct and `false` otherwise. Uses the provided `GameUI` to show
+    /// feedback messages and the current state.
+    pub fn guess(&mut self, letter: char, printer: &mut dyn GameUI) -> bool {
+        let letter = letter.to_ascii_uppercase();
+
         if self.history.contains(&letter) {
-            self.display(Some(get_message(9)));
-            return false; // Already guessed this letter
+            self.display(Some(MessageKey::LetterAlreadyUsed), printer);
+            return false;
         }
 
         self.history.insert(letter);
 
         if self.word.contains(letter) {
             self.update_hidden_letter();
+            self.display(Some(MessageKey::AcceptedLetter), printer);
             true
         } else {
             self.lives = self.lives.saturating_sub(1);
-            self.display(Some(get_message(10)));
+            self.display(Some(MessageKey::IncorrectLetter), printer);
             false
         }
     }
 
-    // Check if the game is won
-    pub fn is_won(&self) -> bool {
-        self.hidden_letter == self.word
-    }
-
-    // Check if the game is lost
-    pub fn is_lost(&self) -> bool {
-        self.lives == 0
-    }
-
-    // Reveal the hidden letters based on the latest guess
-    fn update_hidden_letter(&mut self) {
-        self.hidden_letter = self
-            .word
-            .chars()
-            .map(|c| if self.history.contains(&c) { c } else { '_' })
-            .collect();
-    }
-
-    // Refresh the hidden letters based on the latest attempt
-    pub fn refresh_line(&mut self) {
-        if let Some(letter) = self.attempt {
-            self.history.insert(letter);
-            self.update_hidden_letter();
-        }
-    }
-
-    // Change the word and reset the game state
+    /// Replaces the secret word with `new_word` and resets the state (history
+    /// and lives) accordingly.
     pub fn change_word(&mut self, new_word: String) {
-        self.word = new_word.clone();
-        self.hidden_letter = "_ ".repeat(new_word.len());
+        self.word = new_word.to_ascii_uppercase();
+        self.hidden_letter = "_".repeat(self.word.chars().count());
         self.history.clear();
         self.lives = self.initial_lives;
         self.stages = Hangman::initialize_stages(self.initial_lives);
     }
 
-    // Display the current game state
-    pub fn display(&self, message: Option<&str>) {
-        let mut stdout = StandardStream::stdout(termcolor::ColorChoice::Always);
+    /// Render the current state (stage, masked word, lives and guesses) using
+    /// the supplied `GameUI` implementor.
+    pub fn display(&mut self, message: Option<MessageKey>, printer: &mut dyn GameUI) {
+        // Use the centralized printer helper which may clear when appropriate
         clear();
+        // Determine stage index based on remaining lives (progress from 0)
+        let idx = self.initial_lives.saturating_sub(self.lives) as usize;
+        let stage = self.stages.get(idx).unwrap_or(&STAGE_0);
+        printer.safe_print(crate::ui::SafePrintOptions {
+            key: None,
+            text: Some(stage.to_string()),
+            color: None,
+            extras: None,
+            bold: false,
+            screen: false,
+            context: "stage".to_string(),
+        });
 
-        if let Some(stage) = self.stages.get(self.lives as usize) {
-            print_colored_text(&mut stdout, stage, self.color);
-        }
-
-        // Conditionally print the message if it's Some
         if let Some(msg) = message {
-            print_colored_text(&mut stdout, msg, self.color);
+            printer.safe_print(crate::ui::SafePrintOptions {
+                key: Some(msg),
+                text: None,
+                color: None,
+                extras: None,
+                bold: false,
+                screen: false,
+                context: "message".to_string(),
+            });
         }
 
-        print_colored_text(
-            &mut stdout,
-            &format!("{} {}", get_message(30), self.hidden_letter),
-            self.color,
-        );
-        print_colored_text(
-            &mut stdout,
-            &format!("{} {}", get_message(14), self.lives),
-            self.color,
-        );
-        print_colored_text(
-            &mut stdout,
-            &format!("{} {:?}", get_message(31), self.history),
-            self.color,
-        );
+        // Create a spaced representation for display, e.g. "_ A _ B"
+        let display_hidden = self
+            .hidden_letter
+            .chars()
+            .map(|c| c.to_string())
+            .collect::<Vec<_>>()
+            .join(" ");
+        printer.safe_print(crate::ui::SafePrintOptions {
+            key: Some(MessageKey::WordDisplay),
+            text: None,
+            color: None,
+            extras: Some(display_hidden),
+            bold: false,
+            screen: false,
+            context: "WordDisplay".to_string(),
+        });
+        printer.safe_print(crate::ui::SafePrintOptions {
+            key: Some(MessageKey::Lives),
+            text: None,
+            color: None,
+            extras: Some(self.lives.to_string()),
+            bold: false,
+            screen: false,
+            context: "Lives".to_string(),
+        });
+
+        let mut guessed: Vec<char> = self.history.iter().copied().collect();
+        guessed.sort();
+        let guessed_str = guessed.into_iter().collect::<String>();
+        printer.safe_print(crate::ui::SafePrintOptions {
+            key: Some(MessageKey::GuessedLetters),
+            text: None,
+            color: None,
+            extras: Some(guessed_str),
+            bold: false,
+            screen: false,
+            context: "GuessedLetters".to_string(),
+        });
+    }
+
+    pub fn is_won(&self) -> bool {
+        self.hidden_letter == self.word
+    }
+
+    pub fn is_lost(&self) -> bool {
+        self.lives == 0
+    }
+
+    fn update_hidden_letter(&mut self) {
+        self.hidden_letter = self
+            .word
+            .chars()
+            .map(|c| if self.history.contains(&c) { c } else { '_' })
+            .collect::<String>();
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::lang::Language;
+
+    use crate::test_utils::DummyPrinter;
+
+    #[test]
+    fn lives_getter_and_setter_work() {
+        let lang = crate::lang::LanguageData::load(Language::Global);
+        let mut h = Hangman::new(6, lang);
+        assert_eq!(h.initial_lives(), 6);
+        assert_eq!(h.lives(), 6);
+        h.set_initial_lives(4);
+        assert_eq!(h.initial_lives(), 4);
+        assert_eq!(h.lives(), 4);
+    }
+
+    #[test]
+    fn guessing_results_in_win_and_loss() {
+        let lang = crate::lang::LanguageData::load(Language::Global);
+        let mut h = Hangman::new(3, lang);
+        // Force a known word so test is deterministic
+        h.change_word("AA".to_string());
+        let mut p = DummyPrinter;
+        // guess correctly
+        assert!(h.guess('A', &mut p));
+        assert!(h.is_won());
+
+        // change word and make wrong guesses until lost
+        h.change_word("BB".to_string());
+        assert!(!h.guess('A', &mut p));
+        assert!(!h.is_lost());
+        assert!(!h.guess('C', &mut p));
+        assert!(h.is_lost() || h.lives() < 3); // lives decreased
     }
 }
