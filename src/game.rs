@@ -93,30 +93,34 @@ impl GameData {
     fn finished_game(&mut self, won: bool) {
         let word = self.hangman.word().to_string();
         if won {
-            self.printer.clear();
-            self.printer.safe_print_message(
-                MessageKey::Congratulations,
+            self.printer.safe_print(
+                Some(MessageKey::Congratulations),
+                None,
                 None,
                 Some(&word),
                 false,
+                true,
                 "Congratulations",
             );
         } else {
-            self.printer.clear();
-            self.printer.safe_print_message(
-                MessageKey::GameOver,
+            self.printer.safe_print(
+                Some(MessageKey::GameOver),
+                None,
                 None,
                 Some(&word),
                 false,
+                true,
                 "GameOver",
             );
         }
 
         // Continue message sits under the result message and waits for input
-        self.printer.safe_print_message(
-            MessageKey::ContinueMessage,
+        self.printer.safe_print(
+            Some(MessageKey::ContinueMessage),
             None,
             None,
+            None,
+            false,
             false,
             "ContinueMessage",
         );
@@ -135,10 +139,12 @@ impl GameData {
                 loop {
                     if let Some(c) = self.printer.read_char() {
                         if !c.is_alphabetic() {
-                            self.printer.safe_print_message(
-                                MessageKey::InvalidCharacter,
+                            self.printer.safe_print(
+                                Some(MessageKey::InvalidCharacter),
                                 None,
                                 None,
+                                None,
+                                false,
                                 false,
                                 "InvalidCharacter",
                             );
@@ -163,10 +169,12 @@ impl GameData {
             }
             Game::Hangman2Players => {
                 // two-player mode not implemented yet
-                self.printer.safe_print_message(
-                    MessageKey::InvalidOption,
+                self.printer.safe_print(
+                    Some(MessageKey::InvalidOption),
                     None,
                     None,
+                    None,
+                    false,
                     false,
                     "InvalidOption",
                 );
@@ -183,8 +191,15 @@ impl GameData {
     /// previous player's playback.
     pub fn ask_retry(&mut self) -> bool {
         self.printer.clear();
-        self.printer
-            .safe_print_message(MessageKey::RetryPrompt, None, None, false, "RetryPrompt");
+        self.printer.safe_print(
+            Some(MessageKey::RetryPrompt),
+            None,
+            None,
+            None,
+            false,
+            false,
+            "RetryPrompt",
+        );
 
         let input = self.printer.read_input().trim().to_uppercase();
         let retry = matches!(
@@ -201,18 +216,21 @@ impl GameData {
 
     pub fn main_menu(&mut self) {
         loop {
-            self.printer.clear();
-            self.printer.safe_print_message(
-                MessageKey::WelcomeBanner,
+            self.printer.safe_print(
+                Some(MessageKey::WelcomeBanner),
+                None,
                 None,
                 None,
                 false,
+                true,
                 "WelcomeBanner",
             );
-            self.printer.safe_print_message(
-                MessageKey::StartMessage,
+            self.printer.safe_print(
+                Some(MessageKey::StartMessage),
                 None,
                 None,
+                None,
+                false,
                 false,
                 "StartMessage",
             );
@@ -229,18 +247,21 @@ impl GameData {
     fn handle_main_choice(&mut self, choice: &str) -> bool {
         match choice {
             "I" => {
-                self.printer.clear();
-                self.printer.safe_print_message(
-                    MessageKey::Instructions,
+                self.printer.safe_print(
+                    Some(MessageKey::Instructions),
+                    None,
                     None,
                     None,
                     false,
+                    true,
                     "Instructions",
                 );
-                self.printer.safe_print_message(
-                    MessageKey::ContinueMessage,
+                self.printer.safe_print(
+                    Some(MessageKey::ContinueMessage),
                     None,
                     None,
+                    None,
+                    false,
                     false,
                     "ContinueMessage",
                 );
@@ -261,12 +282,13 @@ impl GameData {
 
     fn config(&mut self) {
         loop {
-            self.printer.clear();
-            self.printer.safe_print_message(
-                MessageKey::SettingsMenu,
+            self.printer.safe_print(
+                Some(MessageKey::SettingsMenu),
+                None,
                 None,
                 None,
                 false,
+                true,
                 "SettingsMenu",
             );
             let input = self.printer.read_input().trim().to_uppercase();
@@ -316,10 +338,12 @@ impl GameData {
     }
 
     pub fn hid(&mut self) {
-        self.printer.safe_print_message(
-            MessageKey::InsertPassword,
+        self.printer.safe_print(
+            Some(MessageKey::InsertPassword),
             None,
             None,
+            None,
+            false,
             false,
             "InsertPassword",
         );
@@ -327,26 +351,39 @@ impl GameData {
         let pass_ok = pass.eq_ignore_ascii_case("HIDDEN") || pass.eq_ignore_ascii_case("OCULTO");
 
         if pass_ok {
-            self.printer.safe_print_message(
-                MessageKey::AccessGranted,
+            self.printer.safe_print(
+                Some(MessageKey::AccessGranted),
                 None,
                 None,
+                None,
+                false,
                 false,
                 "AccessGranted",
             );
-            self.printer.safe_print_message(
-                MessageKey::EasterEgg1,
+            self.printer.safe_print(
+                Some(MessageKey::EasterEgg1),
+                None,
                 None,
                 None,
                 false,
+                false,
                 "EasterEgg1",
             );
-            self.printer
-                .safe_print_colored_screen(EASTEREGG, None, false, "EasterEgg");
-            self.printer.safe_print_message(
-                MessageKey::ContinueMessage,
+            self.printer.safe_print(
+                None,
+                Some(EASTEREGG),
                 None,
                 None,
+                false,
+                true,
+                "EasterEgg",
+            );
+            self.printer.safe_print(
+                Some(MessageKey::ContinueMessage),
+                None,
+                None,
+                None,
+                false,
                 false,
                 "ContinueMessage",
             );
@@ -354,32 +391,13 @@ impl GameData {
 
             let mut rng = rand::rng();
             if rng.random_range(0..=5) == 5 {
-                self.printer
-                    .safe_print_colored(EASTEREGG2, None, false, "EasterEgg2");
-                self.printer.safe_print_message(
-                    MessageKey::EasterEgg2,
-                    None,
-                    None,
-                    false,
-                    "EasterEgg2",
-                );
+                self.printer.safe_print(None, Some(EASTEREGG2), None, None, false, false, "EasterEgg2");
+                self.printer.safe_print(Some(MessageKey::EasterEgg2), None, None, None, false, false, "EasterEgg2");
                 let _ = self.printer.read_input();
             }
         } else {
-            self.printer.safe_print_message(
-                MessageKey::AccessDenied,
-                None,
-                None,
-                false,
-                "AccessDenied",
-            );
-            self.printer.safe_print_message(
-                MessageKey::ContinueMessage,
-                None,
-                None,
-                false,
-                "ContinueMessage",
-            );
+            self.printer.safe_print(Some(MessageKey::AccessDenied), None, None, None, false, false, "AccessDenied");
+            self.printer.safe_print(Some(MessageKey::ContinueMessage), None, None, None, false, false, "ContinueMessage");
             let _ = self.printer.read_input();
         }
     }
@@ -391,19 +409,19 @@ impl GameData {
     }
 
     fn set_players(&mut self) {
-        self.printer.clear();
-        self.printer
-            .safe_print_message(MessageKey::PlayersMenu, None, None, false, "PlayersMenu");
+        self.printer.safe_print(Some(MessageKey::PlayersMenu), None, None, None, false, true, "PlayersMenu");
 
         loop {
             let input = self.printer.read_input().trim().to_uppercase();
             match input.as_str() {
                 "1" => {
                     self.game = Game::Hangman;
-                    self.printer.safe_print_message(
-                        MessageKey::ContinueMessage,
+                    self.printer.safe_print(
+                        Some(MessageKey::ContinueMessage),
                         None,
                         None,
+                        None,
+                        false,
                         false,
                         "ContinueMessage",
                     );
@@ -411,23 +429,19 @@ impl GameData {
                 }
                 "2" => {
                     self.game = Game::Hangman2Players;
-                    self.printer.safe_print_message(
-                        MessageKey::ContinueMessage,
+                    self.printer.safe_print(
+                        Some(MessageKey::ContinueMessage),
                         None,
                         None,
+                        None,
+                        false,
                         false,
                         "ContinueMessage",
                     );
                     break;
                 }
                 _ => {
-                    self.printer.safe_print_message(
-                        MessageKey::InvalidOption,
-                        None,
-                        None,
-                        false,
-                        "InvalidOption",
-                    );
+                    self.printer.safe_print(Some(MessageKey::InvalidOption), None, None, None, false, false, "InvalidOption");
                 }
             }
         }
@@ -449,14 +463,7 @@ impl GameData {
 
     /// Selección interactiva de dificultad (usa la `printer` proporcionada).
     fn select_difficulty(printer: &mut dyn GameUI) -> u8 {
-        printer.clear();
-        printer.safe_print_message(
-            MessageKey::DifficultyMenu,
-            None,
-            None,
-            false,
-            "DifficultyMenu",
-        );
+        printer.safe_print(Some(MessageKey::DifficultyMenu), None, None, None, false, true, "DifficultyMenu");
 
         loop {
             let input = printer.read_input();
@@ -467,13 +474,7 @@ impl GameData {
                 "3" => DifficultyLevel::Hard,
                 "4" => DifficultyLevel::Insane,
                 _ => {
-                    printer.safe_print_message(
-                        MessageKey::InvalidOption,
-                        None,
-                        None,
-                        false,
-                        "InvalidOption",
-                    );
+                    printer.safe_print(Some(MessageKey::InvalidOption), None, None, None, false, false, "InvalidOption");
                     continue;
                 }
             };

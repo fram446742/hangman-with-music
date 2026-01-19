@@ -4,6 +4,8 @@ use termcolor::Color;
 use crate::lang::LanguageData;
 use crate::messages::MessageKey;
 
+pub type PrintingOptions = (Option<MessageKey>, Option<&'static str>, Option<Color>, Option<&'static str>, bool);
+
 /// Trait que representa la interfaz de entrada/salida usada por la lógica del juego.
 /// Permite reemplazar la UI (consola, pruebas, UI gráfica) sin tocar la lógica.
 pub trait GameUI {
@@ -16,7 +18,35 @@ pub trait GameUI {
     ) -> Result<()>;
     fn print_colored(&mut self, text: &str, color: Option<Color>, bold: bool) -> Result<()>;
 
-    /// Convenience helpers that call the primary print methods and log on error.
+    /// Centralized safe printing helper. Use `key` for localized messages or `text` for raw text printing.
+    /// `screen` indicates whether to clear the screen before printing.
+    fn safe_print(
+        &mut self,
+        key: Option<MessageKey>,
+        text: Option<&str>,
+        color: Option<Color>,
+        extras: Option<&str>,
+        bold: bool,
+        screen: bool,
+        context: &str,
+    ) {
+        if screen {
+            self.clear();
+        }
+
+        let res = match (key, text) {
+            (Some(k), None) => self.print_message(k, color, extras, bold),
+            (None, Some(t)) => self.print_colored(t, color, bold),
+            (Some(k), Some(t)) => self.print_message(k, color, Some(t), bold),
+            (None, None) => return, // nothing to print
+        };
+
+        if let Err(e) = res {
+            crate::logger::log_error(&format!("Failed to print {}", context), &format!("{}", e));
+        }
+    }
+
+    /// Backwards-compatible convenience helpers implemented using `safe_print`.
     fn safe_print_message(
         &mut self,
         key: MessageKey,
@@ -25,18 +55,11 @@ pub trait GameUI {
         bold: bool,
         context: &str,
     ) {
-        if let Err(e) = self.print_message(key, color, extras, bold) {
-            crate::logger::log_error(
-                &format!("Failed to print {} {:?}", context, key),
-                &format!("{}", e),
-            );
-        }
+        self.safe_print(Some(key), None, color, extras, bold, false, context);
     }
 
     fn safe_print_colored(&mut self, text: &str, color: Option<Color>, bold: bool, context: &str) {
-        if let Err(e) = self.print_colored(text, color, bold) {
-            crate::logger::log_error(&format!("Failed to print {}", context), &format!("{}", e));
-        }
+        self.safe_print(None, Some(text), color, None, bold, false, context);
     }
 
     fn safe_print_screen_message(
@@ -47,13 +70,7 @@ pub trait GameUI {
         bold: bool,
         context: &str,
     ) {
-        self.clear();
-        if let Err(e) = self.print_message(key, color, extras, bold) {
-            crate::logger::log_error(
-                &format!("Failed to print screen {} {:?}", context, key),
-                &format!("{}", e),
-            );
-        }
+        self.safe_print(Some(key), None, color, extras, bold, true, context);
     }
 
     fn safe_print_colored_screen(
@@ -63,13 +80,7 @@ pub trait GameUI {
         bold: bool,
         context: &str,
     ) {
-        self.clear();
-        if let Err(e) = self.print_colored(text, color, bold) {
-            crate::logger::log_error(
-                &format!("Failed to print colored screen {}", context),
-                &format!("{}", e),
-            );
-        }
+        self.safe_print(None, Some(text), color, None, bold, true, context);
     }
 
     fn read_input(&self) -> String;

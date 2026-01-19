@@ -110,14 +110,15 @@ impl Hangman {
     /// Render the current state (stage, masked word, lives and guesses) using
     /// the supplied `GameUI` implementor.
     pub fn display(&mut self, message: Option<MessageKey>, printer: &mut dyn GameUI) {
+        // Use the centralized printer helper which may clear when appropriate
         clear();
         // Determine stage index based on remaining lives (progress from 0)
         let idx = self.initial_lives.saturating_sub(self.lives) as usize;
         let stage = self.stages.get(idx).unwrap_or(&STAGE_0);
-        printer.safe_print_colored(stage, None, false, "stage");
+        printer.safe_print(None, Some(stage), None, None, false, false, "stage");
 
         if let Some(msg) = message {
-            printer.safe_print_message(msg, None, None, false, "message");
+            printer.safe_print(Some(msg), None, None, None, false, false, "message");
         }
 
         // Create a spaced representation for display, e.g. "_ A _ B"
@@ -127,17 +128,21 @@ impl Hangman {
             .map(|c| c.to_string())
             .collect::<Vec<_>>()
             .join(" ");
-        printer.safe_print_message(
-            MessageKey::WordDisplay,
+        printer.safe_print(
+            Some(MessageKey::WordDisplay),
+            None,
             None,
             Some(&display_hidden),
             false,
+            false,
             "WordDisplay",
         );
-        printer.safe_print_message(
-            MessageKey::Lives,
+        printer.safe_print(
+            Some(MessageKey::Lives),
+            None,
             None,
             Some(&self.lives.to_string()),
+            false,
             false,
             "Lives",
         );
@@ -145,10 +150,12 @@ impl Hangman {
         let mut guessed: Vec<char> = self.history.iter().copied().collect();
         guessed.sort();
         let guessed_str = guessed.into_iter().collect::<String>();
-        printer.safe_print_message(
-            MessageKey::GuessedLetters,
+        printer.safe_print(
+            Some(MessageKey::GuessedLetters),
+            None,
             None,
             Some(&guessed_str),
+            false,
             false,
             "GuessedLetters",
         );

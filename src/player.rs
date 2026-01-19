@@ -69,9 +69,17 @@ impl MusicPlayer {
             }
 
             if let Some(p) = printer {
-                p.safe_print_message(MessageKey::MusicExtracted, None, None, false, "MusicInit");
+                p.safe_print(
+                    Some(MessageKey::MusicExtracted),
+                    None,
+                    None,
+                    None,
+                    false,
+                    false,
+                    "MusicInit",
+                );
             } else {
-                crate::logger::log_error(
+                crate::logger::log_warn(
                     "Music init",
                     "No songs found in the music directory; default songs extracted.",
                 );
@@ -172,18 +180,28 @@ impl MusicPlayer {
         self.player.add(song);
         self.player.use_auto_play();
         if let Some(p) = printer {
-            p.safe_print_message(MessageKey::PlayingTestSong, None, None, false, "PlayTest");
+            p.safe_print(
+                Some(MessageKey::PlayingTestSong),
+                None,
+                None,
+                None,
+                false,
+                false,
+                "PlayTest",
+            );
             if let Ok(queue) = self.player.waiting_list().join() {
-                p.safe_print_message(
-                    MessageKey::MusicQueue,
+                p.safe_print(
+                    Some(MessageKey::MusicQueue),
+                    None,
                     None,
                     Some(&format!("{:?}", queue)),
+                    false,
                     false,
                     "MusicQueue",
                 );
             }
         } else {
-            crate::logger::log_error("Music", "Playing test song");
+            crate::logger::log_info("Music", "Playing test song");
         }
 
         self.player.play();
