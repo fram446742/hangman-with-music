@@ -70,7 +70,8 @@ impl Hangman {
     // Make a guess and update the game state
     pub fn guess(&mut self, letter: char) -> bool {
         if self.history.contains(&letter) {
-            self.display(Some(&self.language_data.get_message("LetterAlreadyUsed").unwrap())); // Use specific message ID
+            let msg = self.language_data.get_message("LetterAlreadyUsed").unwrap_or_else(|_| String::from("Letter already used"));
+            self.display(Some(&msg)); // Use specific message ID
             return false; // Already guessed this letter
         }
 
@@ -81,7 +82,8 @@ impl Hangman {
             true
         } else {
             self.lives = self.lives.saturating_sub(1);
-            self.display(Some(&self.language_data.get_message("IncorrectLetter").unwrap())); // Use specific message ID
+            let msg = self.language_data.get_message("IncorrectLetter").unwrap_or_else(|_| String::from("Incorrect letter"));
+            self.display(Some(&msg)); // Use specific message ID
             false
         }
     }

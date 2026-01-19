@@ -1,0 +1,58 @@
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum MessageKey {
+    WelcomeBanner,
+    StartMessage,
+    RetryPrompt,
+    Instructions,
+    ContinueMessage,
+    SettingsMenu,
+    InvalidOption,
+    DifficultyMenu,
+    LanguageMenu,
+    InsertPassword,
+    AccessGranted,
+    EasterEgg1,
+    EasterEgg2,
+    AccessDenied,
+    PlayersMenu,
+    InvalidCharacter,
+    LetterAlreadyUsed,
+    AcceptedLetter,
+    IncorrectLetter,
+    WordDisplay,
+    Lives,
+    GuessedLetters,
+    Congratulations,
+    GameOver,
+}
+
+impl MessageKey {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            MessageKey::WelcomeBanner => "WelcomeBanner",
+            MessageKey::StartMessage => "StartMessage",
+            MessageKey::RetryPrompt => "RetryPrompt",
+            MessageKey::Instructions => "Instructions",
+            MessageKey::ContinueMessage => "ContinueMessage",
+            MessageKey::SettingsMenu => "SettingsMenu",
+            MessageKey::InvalidOption => "InvalidOption",
+            MessageKey::DifficultyMenu => "DifficultyMenu",
+            MessageKey::LanguageMenu => "LanguageMenu",
+            MessageKey::InsertPassword => "InsertPassword",
+            MessageKey::AccessGranted => "AccessGranted",
+            MessageKey::EasterEgg1 => "EasterEgg1",
+            MessageKey::EasterEgg2 => "EasterEgg2",
+            MessageKey::AccessDenied => "AccessDenied",
+            MessageKey::PlayersMenu => "PlayersMenu",
+            MessageKey::InvalidCharacter => "InvalidCharacter",
+            MessageKey::LetterAlreadyUsed => "LetterAlreadyUsed",
+            MessageKey::AcceptedLetter => "AcceptedLetter",
+            MessageKey::IncorrectLetter => "IncorrectLetter",
+            MessageKey::WordDisplay => "WordDisplay",
+            MessageKey::Lives => "Lives",
+            MessageKey::GuessedLetters => "GuessedLetters",
+            MessageKey::Congratulations => "Congratulations",
+            MessageKey::GameOver => "GameOver",
+        }
+    }
+}
