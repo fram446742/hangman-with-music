@@ -114,14 +114,11 @@ impl Hangman {
         // Determine stage index based on remaining lives (progress from 0)
         let idx = self.initial_lives.saturating_sub(self.lives) as usize;
         let stage = self.stages.get(idx).unwrap_or(&STAGE_0);
-        if let Err(e) = printer.print_colored(stage, None, false) {
-            eprintln!("Failed to print stage: {}", e);
-        }
+        printer.safe_print_colored(stage, None, false, "stage");
 
-        if let Some(msg) = message
-            && let Err(e) = printer.print_message(msg, None, None, false) {
-                eprintln!("Failed to print message {:?}: {}", msg, e);
-            }
+        if let Some(msg) = message {
+            printer.safe_print_message(msg, None, None, false, "message");
+        }
 
         // Create a spaced representation for display, e.g. "_ A _ B"
         let display_hidden = self
@@ -130,19 +127,31 @@ impl Hangman {
             .map(|c| c.to_string())
             .collect::<Vec<_>>()
             .join(" ");
-        if let Err(e) = printer.print_message(MessageKey::WordDisplay, None, Some(&display_hidden), false) {
-            eprintln!("Failed to print WordDisplay: {}", e);
-        }
-        if let Err(e) = printer.print_message(MessageKey::Lives, None, Some(&self.lives.to_string()), false) {
-            eprintln!("Failed to print Lives: {}", e);
-        }
+        printer.safe_print_message(
+            MessageKey::WordDisplay,
+            None,
+            Some(&display_hidden),
+            false,
+            "WordDisplay",
+        );
+        printer.safe_print_message(
+            MessageKey::Lives,
+            None,
+            Some(&self.lives.to_string()),
+            false,
+            "Lives",
+        );
 
         let mut guessed: Vec<char> = self.history.iter().copied().collect();
         guessed.sort();
         let guessed_str = guessed.into_iter().collect::<String>();
-        if let Err(e) = printer.print_message(MessageKey::GuessedLetters, None, Some(&guessed_str), false) {
-            eprintln!("Failed to print GuessedLetters: {}", e);
-        }
+        printer.safe_print_message(
+            MessageKey::GuessedLetters,
+            None,
+            Some(&guessed_str),
+            false,
+            "GuessedLetters",
+        );
     }
 
     pub fn is_won(&self) -> bool {
@@ -169,15 +178,40 @@ mod tests {
 
     struct DummyPrinter;
     impl GameUI for DummyPrinter {
-        fn print_message(&mut self, _key: crate::messages::MessageKey, _color: Option<termcolor::Color>, _extras: Option<&str>, _bold: bool) -> std::io::Result<()> { Ok(()) }
-        fn print_colored(&mut self, _text: &str, _color: Option<termcolor::Color>, _bold: bool) -> std::io::Result<()> { Ok(()) }
-        fn read_input(&self) -> String { String::new() }
-        fn read_char(&self) -> Option<char> { None }
-        fn read_pass(&self) -> String { String::new() }
+        fn print_message(
+            &mut self,
+            _key: crate::messages::MessageKey,
+            _color: Option<termcolor::Color>,
+            _extras: Option<&str>,
+            _bold: bool,
+        ) -> std::io::Result<()> {
+            Ok(())
+        }
+        fn print_colored(
+            &mut self,
+            _text: &str,
+            _color: Option<termcolor::Color>,
+            _bold: bool,
+        ) -> std::io::Result<()> {
+            Ok(())
+        }
+        fn read_input(&self) -> String {
+            String::new()
+        }
+        fn read_char(&self) -> Option<char> {
+            None
+        }
+        fn read_pass(&self) -> String {
+            String::new()
+        }
         fn clear(&self) {}
         fn set_color(&mut self, _color: Option<termcolor::Color>) {}
         fn change_language(&mut self) {}
-        fn get_language_data(&self) -> &crate::lang::LanguageData { static LD: once_cell::sync::OnceCell<crate::lang::LanguageData> = once_cell::sync::OnceCell::new(); LD.get_or_init(|| crate::lang::LanguageData::load(Language::Global)) }
+        fn get_language_data(&self) -> &crate::lang::LanguageData {
+            static LD: once_cell::sync::OnceCell<crate::lang::LanguageData> =
+                once_cell::sync::OnceCell::new();
+            LD.get_or_init(|| crate::lang::LanguageData::load(Language::Global))
+        }
     }
 
     #[test]

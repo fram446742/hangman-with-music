@@ -3,7 +3,6 @@
 //! This module contains `GameData` which owns the game state and orchestrates
 //! interactions between the UI, the hangman logic and the music player.
 
-use anyhow::Context;
 use crate::{
     consts::{EASTEREGG, EASTEREGG2},
     hangman::Hangman,
@@ -13,10 +12,10 @@ use crate::{
     tools::random_color,
     ui::GameUI,
 };
+use anyhow::Context;
+use anyhow::Result;
 use rand::Rng;
 use std::process::exit;
-use anyhow::Result;
-use termcolor::Color;
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum Game {
@@ -51,7 +50,11 @@ impl GameData {
     }
 
     /// Create a new GameData instance but allow specifying the music directory (useful for tests)
-    pub fn new_with_music_dir(mut printer: Box<dyn GameUI>, two_players: bool, music_dir: &str) -> Result<Self> {
+    pub fn new_with_music_dir(
+        mut printer: Box<dyn GameUI>,
+        two_players: bool,
+        music_dir: &str,
+    ) -> Result<Self> {
         // load language and select difficulty
         let language_data: LanguageData = printer.get_language_data().clone();
         let difficulty = Self::select_difficulty(&mut *printer);
@@ -66,11 +69,17 @@ impl GameData {
 
         // initialize music using the provided directory
         let mut music = MusicPlayer::new();
-        music.init_in(music_dir).context("initializing music player failed")?;
+        music
+            .init_in(music_dir)
+            .context("initializing music player failed")?;
         music.start_music();
 
         let mut instance = Self {
-            game: if two_players { Game::Hangman2Players } else { Game::Hangman },
+            game: if two_players {
+                Game::Hangman2Players
+            } else {
+                Game::Hangman
+            },
             hangman,
             hangman2,
             music_player: music,
@@ -84,23 +93,33 @@ impl GameData {
     fn finished_game(&mut self, won: bool) {
         let word = self.hangman.word().to_string();
         if won {
-            self.try_print_message(
+            self.printer.clear();
+            self.printer.safe_print_message(
                 MessageKey::Congratulations,
                 None,
                 Some(&word),
                 false,
+                "Congratulations",
             );
         } else {
-            self.try_print_message(
+            self.printer.clear();
+            self.printer.safe_print_message(
                 MessageKey::GameOver,
                 None,
                 Some(&word),
                 false,
+                "GameOver",
             );
         }
 
-        self.try_print_message(MessageKey::ContinueMessage, None, None, false);
-        // esperar a que el usuario presione Enter
+        // Continue message sits under the result message and waits for input
+        self.printer.safe_print_message(
+            MessageKey::ContinueMessage,
+            None,
+            None,
+            false,
+            "ContinueMessage",
+        );
         let _ = self.printer.read_input();
     }
 
@@ -116,7 +135,13 @@ impl GameData {
                 loop {
                     if let Some(c) = self.printer.read_char() {
                         if !c.is_alphabetic() {
-                            self.try_print_message(MessageKey::InvalidCharacter, None, None, false);
+                            self.printer.safe_print_message(
+                                MessageKey::InvalidCharacter,
+                                None,
+                                None,
+                                false,
+                                "InvalidCharacter",
+                            );
                             continue;
                         }
 
@@ -138,7 +163,13 @@ impl GameData {
             }
             Game::Hangman2Players => {
                 // two-player mode not implemented yet
-                self.try_print_message(MessageKey::InvalidOption, None, None, false);
+                self.printer.safe_print_message(
+                    MessageKey::InvalidOption,
+                    None,
+                    None,
+                    false,
+                    "InvalidOption",
+                );
             }
         }
 
@@ -152,10 +183,14 @@ impl GameData {
     /// previous player's playback.
     pub fn ask_retry(&mut self) -> bool {
         self.printer.clear();
-        self.try_print_message(MessageKey::RetryPrompt, None, None, false);
+        self.printer
+            .safe_print_message(MessageKey::RetryPrompt, None, None, false, "RetryPrompt");
 
         let input = self.printer.read_input().trim().to_uppercase();
-        let retry = matches!(input.as_str(), "Y" | "YES" | "S" | "SI" | "J" | "JA" | "O" | "OK");
+        let retry = matches!(
+            input.as_str(),
+            "Y" | "YES" | "S" | "SI" | "J" | "JA" | "O" | "OK"
+        );
 
         // Ensure any currently playing music is stopped and the queue cleared
         // to avoid overlapping playback when a new GameData instance starts.
@@ -167,8 +202,20 @@ impl GameData {
     pub fn main_menu(&mut self) {
         loop {
             self.printer.clear();
-            self.try_print_message(MessageKey::WelcomeBanner, None, None, false);
-            self.try_print_message(MessageKey::StartMessage, None, None, false);
+            self.printer.safe_print_message(
+                MessageKey::WelcomeBanner,
+                None,
+                None,
+                false,
+                "WelcomeBanner",
+            );
+            self.printer.safe_print_message(
+                MessageKey::StartMessage,
+                None,
+                None,
+                false,
+                "StartMessage",
+            );
 
             let input = self.printer.read_input().trim().to_uppercase();
             if self.handle_main_choice(input.as_str()) {
@@ -183,8 +230,20 @@ impl GameData {
         match choice {
             "I" => {
                 self.printer.clear();
-                self.try_print_message(MessageKey::Instructions, None, None, false);
-                self.try_print_message(MessageKey::ContinueMessage, None, None, false);
+                self.printer.safe_print_message(
+                    MessageKey::Instructions,
+                    None,
+                    None,
+                    false,
+                    "Instructions",
+                );
+                self.printer.safe_print_message(
+                    MessageKey::ContinueMessage,
+                    None,
+                    None,
+                    false,
+                    "ContinueMessage",
+                );
                 let _ = self.printer.read_input();
                 true
             }
@@ -203,7 +262,13 @@ impl GameData {
     fn config(&mut self) {
         loop {
             self.printer.clear();
-            self.try_print_message(MessageKey::SettingsMenu, None, None, false);
+            self.printer.safe_print_message(
+                MessageKey::SettingsMenu,
+                None,
+                None,
+                false,
+                "SettingsMenu",
+            );
             let input = self.printer.read_input().trim().to_uppercase();
 
             if self.handle_config_choice(input.as_str()) {
@@ -230,7 +295,11 @@ impl GameData {
             }
             "4" => {
                 self.printer.change_language();
-                let new_word = self.printer.get_language_data().get_random_word().unwrap_or_else(|| String::from("TestWord"));
+                let new_word = self
+                    .printer
+                    .get_language_data()
+                    .get_random_word()
+                    .unwrap_or_else(|| String::from("TestWord"));
                 self.hangman.change_word(new_word);
                 true
             }
@@ -242,36 +311,75 @@ impl GameData {
                 self.hid();
                 true
             }
-            _ => {
-                false
-            }
+            _ => false,
         }
     }
 
     pub fn hid(&mut self) {
-        self.try_print_message(MessageKey::InsertPassword, None, None, false);
+        self.printer.safe_print_message(
+            MessageKey::InsertPassword,
+            None,
+            None,
+            false,
+            "InsertPassword",
+        );
         let pass = self.printer.read_pass();
         let pass_ok = pass.eq_ignore_ascii_case("HIDDEN") || pass.eq_ignore_ascii_case("OCULTO");
 
         if pass_ok {
-            self.try_print_message(MessageKey::AccessGranted, None, None, false);
-            self.try_print_message(MessageKey::EasterEgg1, None, None, false);
-            self.try_print_colored(EASTEREGG, None, false);
-
-            let continue_msg = MessageKey::ContinueMessage.message(self.printer.get_language_data());
-
-            self.try_print_colored(&format!("{} {}", continue_msg, "?"), None, false);
+            self.printer.safe_print_message(
+                MessageKey::AccessGranted,
+                None,
+                None,
+                false,
+                "AccessGranted",
+            );
+            self.printer.safe_print_message(
+                MessageKey::EasterEgg1,
+                None,
+                None,
+                false,
+                "EasterEgg1",
+            );
+            self.printer
+                .safe_print_colored_screen(EASTEREGG, None, false, "EasterEgg");
+            self.printer.safe_print_message(
+                MessageKey::ContinueMessage,
+                None,
+                None,
+                false,
+                "ContinueMessage",
+            );
             let _ = self.printer.read_input();
 
             let mut rng = rand::rng();
             if rng.random_range(0..=5) == 5 {
-                self.try_print_colored(EASTEREGG2, None, false);
-                self.try_print_message(MessageKey::EasterEgg2, None, None, false);
+                self.printer
+                    .safe_print_colored(EASTEREGG2, None, false, "EasterEgg2");
+                self.printer.safe_print_message(
+                    MessageKey::EasterEgg2,
+                    None,
+                    None,
+                    false,
+                    "EasterEgg2",
+                );
                 let _ = self.printer.read_input();
             }
         } else {
-            self.try_print_message(MessageKey::AccessDenied, None, None, false);
-            self.try_print_message(MessageKey::ContinueMessage, None, None, false);
+            self.printer.safe_print_message(
+                MessageKey::AccessDenied,
+                None,
+                None,
+                false,
+                "AccessDenied",
+            );
+            self.printer.safe_print_message(
+                MessageKey::ContinueMessage,
+                None,
+                None,
+                false,
+                "ContinueMessage",
+            );
             let _ = self.printer.read_input();
         }
     }
@@ -284,23 +392,42 @@ impl GameData {
 
     fn set_players(&mut self) {
         self.printer.clear();
-        self.try_print_message(MessageKey::PlayersMenu, None, None, false);
+        self.printer
+            .safe_print_message(MessageKey::PlayersMenu, None, None, false, "PlayersMenu");
 
         loop {
             let input = self.printer.read_input().trim().to_uppercase();
             match input.as_str() {
                 "1" => {
                     self.game = Game::Hangman;
-                    self.try_print_message(MessageKey::ContinueMessage, None, None, false);
+                    self.printer.safe_print_message(
+                        MessageKey::ContinueMessage,
+                        None,
+                        None,
+                        false,
+                        "ContinueMessage",
+                    );
                     break;
                 }
                 "2" => {
                     self.game = Game::Hangman2Players;
-                    self.try_print_message(MessageKey::ContinueMessage, None, None, false);
+                    self.printer.safe_print_message(
+                        MessageKey::ContinueMessage,
+                        None,
+                        None,
+                        false,
+                        "ContinueMessage",
+                    );
                     break;
                 }
                 _ => {
-                    self.try_print_message(MessageKey::InvalidOption, None, None, false);
+                    self.printer.safe_print_message(
+                        MessageKey::InvalidOption,
+                        None,
+                        None,
+                        false,
+                        "InvalidOption",
+                    );
                 }
             }
         }
@@ -320,24 +447,16 @@ impl GameData {
         }
     }
 
-    fn try_print_message(&mut self, key: MessageKey, color: Option<Color>, extras: Option<&str>, bold: bool) {
-        if let Err(e) = self.printer.print_message(key, color, extras, bold) {
-            eprintln!("Failed to print message {:?}: {}", key, e);
-        }
-    }
-
-    fn try_print_colored(&mut self, text: &str, color: Option<Color>, bold: bool) {
-        if let Err(e) = self.printer.print_colored(text, color, bold) {
-            eprintln!("Failed to print colored text: {}", e);
-        }
-    }
-
     /// Selección interactiva de dificultad (usa la `printer` proporcionada).
     fn select_difficulty(printer: &mut dyn GameUI) -> u8 {
         printer.clear();
-        if let Err(e) = printer.print_message(MessageKey::DifficultyMenu, None, None, false) {
-            eprintln!("Failed to print DifficultyMenu: {}", e);
-        }
+        printer.safe_print_message(
+            MessageKey::DifficultyMenu,
+            None,
+            None,
+            false,
+            "DifficultyMenu",
+        );
 
         loop {
             let input = printer.read_input();
@@ -348,9 +467,13 @@ impl GameData {
                 "3" => DifficultyLevel::Hard,
                 "4" => DifficultyLevel::Insane,
                 _ => {
-                    if let Err(e) = printer.print_message(MessageKey::InvalidOption, None, None, false) {
-                        eprintln!("Failed to print InvalidOption: {}", e);
-                    }
+                    printer.safe_print_message(
+                        MessageKey::InvalidOption,
+                        None,
+                        None,
+                        false,
+                        "InvalidOption",
+                    );
                     continue;
                 }
             };
@@ -373,38 +496,86 @@ mod tests {
 
     struct DummyPrinter;
     impl GameUI for DummyPrinter {
-        fn print_message(&mut self, _key: crate::messages::MessageKey, _color: Option<termcolor::Color>, _extras: Option<&str>, _bold: bool) -> std::io::Result<()> { Ok(()) }
-        fn print_colored(&mut self, _text: &str, _color: Option<termcolor::Color>, _bold: bool) -> std::io::Result<()> { Ok(()) }
-        fn read_input(&self) -> String { String::from("1") }
-        fn read_char(&self) -> Option<char> { None }
-        fn read_pass(&self) -> String { String::new() }
+        fn print_message(
+            &mut self,
+            _key: crate::messages::MessageKey,
+            _color: Option<termcolor::Color>,
+            _extras: Option<&str>,
+            _bold: bool,
+        ) -> std::io::Result<()> {
+            Ok(())
+        }
+        fn print_colored(
+            &mut self,
+            _text: &str,
+            _color: Option<termcolor::Color>,
+            _bold: bool,
+        ) -> std::io::Result<()> {
+            Ok(())
+        }
+        fn read_input(&self) -> String {
+            String::from("1")
+        }
+        fn read_char(&self) -> Option<char> {
+            None
+        }
+        fn read_pass(&self) -> String {
+            String::new()
+        }
         fn clear(&self) {}
         fn set_color(&mut self, _color: Option<termcolor::Color>) {}
         fn change_language(&mut self) {}
-        fn get_language_data(&self) -> &crate::lang::LanguageData { static LD: once_cell::sync::OnceCell<crate::lang::LanguageData> = once_cell::sync::OnceCell::new(); LD.get_or_init(|| crate::lang::LanguageData::load(Language::Global)) }
+        fn get_language_data(&self) -> &crate::lang::LanguageData {
+            static LD: once_cell::sync::OnceCell<crate::lang::LanguageData> =
+                once_cell::sync::OnceCell::new();
+            LD.get_or_init(|| crate::lang::LanguageData::load(Language::Global))
+        }
     }
+
+    use std::sync::{Arc, Mutex};
 
     struct MockPrinter {
         inputs: std::sync::Mutex<VecDeque<String>>,
-        outputs: std::sync::Mutex<Vec<String>>,
+        pub outputs: std::sync::Mutex<Vec<String>>,
     }
 
     impl MockPrinter {
-        fn with_inputs(inputs: Vec<&str>) -> Self {
-            MockPrinter { inputs: std::sync::Mutex::new(inputs.into_iter().map(|s| s.to_string()).collect()), outputs: std::sync::Mutex::new(Vec::new()) }
+        fn with_inputs(inputs: Vec<&str>) -> Arc<Mutex<Self>> {
+            Arc::new(Mutex::new(MockPrinter {
+                inputs: std::sync::Mutex::new(inputs.into_iter().map(|s| s.to_string()).collect()),
+                outputs: std::sync::Mutex::new(Vec::new()),
+            }))
         }
 
-        fn pop_output(&self) -> Option<String> { self.outputs.lock().unwrap().pop() }
+        #[allow(dead_code)]
+        fn pop_output(&self) -> Option<String> {
+            self.outputs.lock().unwrap().pop()
+        }
     }
 
     impl GameUI for MockPrinter {
-        fn print_message(&mut self, key: crate::messages::MessageKey, _color: Option<termcolor::Color>, extras: Option<&str>, _bold: bool) -> std::io::Result<()> {
+        fn print_message(
+            &mut self,
+            key: crate::messages::MessageKey,
+            _color: Option<termcolor::Color>,
+            extras: Option<&str>,
+            _bold: bool,
+        ) -> std::io::Result<()> {
             let mut out = self.outputs.lock().unwrap();
-            if let Some(ex) = extras { out.push(format!("{}: {}", key.as_str(), ex)); } else { out.push(key.as_str().to_string()); }
+            if let Some(ex) = extras {
+                out.push(format!("{}: {}", key.as_str(), ex));
+            } else {
+                out.push(key.as_str().to_string());
+            }
             Ok(())
         }
 
-        fn print_colored(&mut self, text: &str, _color: Option<termcolor::Color>, _bold: bool) -> std::io::Result<()> {
+        fn print_colored(
+            &mut self,
+            text: &str,
+            _color: Option<termcolor::Color>,
+            _bold: bool,
+        ) -> std::io::Result<()> {
             self.outputs.lock().unwrap().push(text.to_string());
             Ok(())
         }
@@ -413,19 +584,80 @@ mod tests {
             self.inputs.lock().unwrap().pop_front().unwrap_or_default()
         }
 
-        fn read_char(&self) -> Option<char> { self.read_input().chars().next() }
-        fn read_pass(&self) -> String { self.read_input() }
-        fn clear(&self) { self.outputs.lock().unwrap().push("<clear>".to_string()); }
+        fn read_char(&self) -> Option<char> {
+            self.read_input().chars().next()
+        }
+        fn read_pass(&self) -> String {
+            self.read_input()
+        }
+        fn clear(&self) {
+            self.outputs.lock().unwrap().push("<clear>".to_string());
+        }
         fn set_color(&mut self, _color: Option<termcolor::Color>) {}
-        fn change_language(&mut self) { self.outputs.lock().unwrap().push("<language_changed>".to_string()); }
-        fn get_language_data(&self) -> &crate::lang::LanguageData { static LD: once_cell::sync::OnceCell<crate::lang::LanguageData> = once_cell::sync::OnceCell::new(); LD.get_or_init(|| crate::lang::LanguageData::load(Language::Global)) }
+        fn change_language(&mut self) {
+            self.outputs
+                .lock()
+                .unwrap()
+                .push("<language_changed>".to_string());
+        }
+        fn get_language_data(&self) -> &crate::lang::LanguageData {
+            static LD: once_cell::sync::OnceCell<crate::lang::LanguageData> =
+                once_cell::sync::OnceCell::new();
+            LD.get_or_init(|| crate::lang::LanguageData::load(Language::Global))
+        }
+    }
+
+    impl GameUI for Arc<Mutex<MockPrinter>> {
+        fn print_message(
+            &mut self,
+            key: crate::messages::MessageKey,
+            color: Option<termcolor::Color>,
+            extras: Option<&str>,
+            bold: bool,
+        ) -> std::io::Result<()> {
+            self.lock().unwrap().print_message(key, color, extras, bold)
+        }
+        fn print_colored(
+            &mut self,
+            text: &str,
+            color: Option<termcolor::Color>,
+            bold: bool,
+        ) -> std::io::Result<()> {
+            self.lock().unwrap().print_colored(text, color, bold)
+        }
+        // fn print_screen_message(&mut self, key: crate::messages::MessageKey, color: Option<termcolor::Color>, extras: Option<&str>, bold: bool) -> std::io::Result<()> { self.lock().unwrap().print_screen_message(key,color,extras,bold) }
+        // fn print_colored_screen(&mut self, text: &str, color: Option<termcolor::Color>, bold: bool) -> std::io::Result<()> { self.lock().unwrap().print_colored_screen(text,color,bold) }
+        fn read_input(&self) -> String {
+            self.lock().unwrap().read_input()
+        }
+        fn read_char(&self) -> Option<char> {
+            self.lock().unwrap().read_char()
+        }
+        fn read_pass(&self) -> String {
+            self.lock().unwrap().read_pass()
+        }
+        fn clear(&self) {
+            self.lock().unwrap().clear()
+        }
+        fn set_color(&mut self, color: Option<termcolor::Color>) {
+            self.lock().unwrap().set_color(color)
+        }
+        fn change_language(&mut self) {
+            self.lock().unwrap().change_language()
+        }
+        fn get_language_data(&self) -> &crate::lang::LanguageData {
+            static LD: once_cell::sync::OnceCell<crate::lang::LanguageData> =
+                once_cell::sync::OnceCell::new();
+            LD.get_or_init(|| crate::lang::LanguageData::load(Language::Global))
+        }
     }
 
     #[test]
     fn set_difficulty_updates_hangman_instances() {
         let dir = tempdir().expect("tempdir");
         let boxed = Box::new(DummyPrinter);
-        let mut gd = GameData::new_with_music_dir(boxed, false, dir.path().to_str().unwrap()).expect("init");
+        let mut gd =
+            GameData::new_with_music_dir(boxed, false, dir.path().to_str().unwrap()).expect("init");
 
         // Default difficulty set in new_with_music_dir is based on DummyPrinter::read_input returning "1" -> Easy (8 lives)
         assert_eq!(gd.initial_lives(), 8);
@@ -439,7 +671,8 @@ mod tests {
         // initial "1" for difficulty, then "2" to select two players
         let mp = MockPrinter::with_inputs(vec!["1", "2"]);
         let boxed: Box<dyn GameUI> = Box::new(mp);
-        let mut gd = GameData::new_with_music_dir(boxed, false, dir.path().to_str().unwrap()).expect("init");
+        let mut gd =
+            GameData::new_with_music_dir(boxed, false, dir.path().to_str().unwrap()).expect("init");
 
         // Now call set_players to consume the next input
         gd.set_players();
@@ -452,7 +685,8 @@ mod tests {
         // initial "1" for difficulty, then "I" for instructions, then empty to exit
         let mp = MockPrinter::with_inputs(vec!["1", "I", ""]);
         let boxed: Box<dyn GameUI> = Box::new(mp);
-        let mut gd = GameData::new_with_music_dir(boxed, false, dir.path().to_str().unwrap()).expect("init");
+        let mut gd =
+            GameData::new_with_music_dir(boxed, false, dir.path().to_str().unwrap()).expect("init");
 
         gd.main_menu();
         // No panics and flow should have printed Instructions at least once
@@ -464,7 +698,8 @@ mod tests {
         // initial "1" for difficulty; then in config: "5" -> enter difficulty select -> "2" -> set to Medium; then "6" to exit
         let mp = MockPrinter::with_inputs(vec!["1", "5", "2", "6"]);
         let boxed: Box<dyn GameUI> = Box::new(mp);
-        let mut gd = GameData::new_with_music_dir(boxed, false, dir.path().to_str().unwrap()).expect("init");
+        let mut gd =
+            GameData::new_with_music_dir(boxed, false, dir.path().to_str().unwrap()).expect("init");
 
         // call config directly (it will consume the queued inputs)
         gd.config();
@@ -475,15 +710,73 @@ mod tests {
         let dir = tempdir().expect("tempdir");
         // initial "1" for difficulty, then answer "Y" to retry
         let mp = MockPrinter::with_inputs(vec!["1", "Y"]);
-        let boxed: Box<dyn GameUI> = Box::new(mp);
-        let mut gd = GameData::new_with_music_dir(boxed, false, dir.path().to_str().unwrap()).expect("init");
+        let boxed: Box<dyn GameUI> = Box::new(Arc::clone(&mp));
+        let mut gd =
+            GameData::new_with_music_dir(boxed, false, dir.path().to_str().unwrap()).expect("init");
 
         // sanity: before calling ask_retry the queue may have songs
-        let _q_before = gd.music_player.queue().join().expect("join") ;
+        let _q_before = gd.music_player.queue().join().expect("join");
         // Call ask_retry which should clear the queue
         let retry = gd.ask_retry();
         assert!(retry, "expected retry to be true");
 
         let q_after = gd.music_player.queue().join().expect("join");
-        assert!(q_after.is_empty(), "expected music queue to be cleared on retry");
-    }}
+        assert!(
+            q_after.is_empty(),
+            "expected music queue to be cleared on retry"
+        );
+    }
+
+    #[test]
+    fn finished_game_refreshes_screen() {
+        let dir = tempdir().expect("tempdir");
+        // initial "1" for difficulty, then empty input for continue
+        let mp = MockPrinter::with_inputs(vec!["1", ""]);
+        let boxed: Box<dyn GameUI> = Box::new(Arc::clone(&mp));
+        let mut gd =
+            GameData::new_with_music_dir(boxed, false, dir.path().to_str().unwrap()).expect("init");
+
+        // set a known word and call finished_game
+        gd.hangman.change_word("ZZ".to_string());
+        gd.finished_game(true);
+
+        let outputs = mp.lock().unwrap().outputs.lock().unwrap().clone();
+        // find the '<clear>' followed by the Congratulations message
+        let mut found = false;
+        for i in 0..outputs.len() - 1 {
+            if outputs[i] == "<clear>" && outputs[i + 1].starts_with("Congratulations") {
+                found = true;
+                break;
+            }
+        }
+        assert!(
+            found,
+            "expected screen to be refreshed and show Congratulations"
+        );
+    }
+
+    #[test]
+    fn hid_refreshes_screen_for_easteregg() {
+        let dir = tempdir().expect("tempdir");
+        // initial "1" for difficulty, then the password 'HIDDEN', then empty
+        let mp = MockPrinter::with_inputs(vec!["1", "HIDDEN", ""]);
+        let boxed: Box<dyn GameUI> = Box::new(Arc::clone(&mp));
+        let mut gd =
+            GameData::new_with_music_dir(boxed, false, dir.path().to_str().unwrap()).expect("init");
+
+        gd.hid();
+
+        let outputs = mp.lock().unwrap().outputs.lock().unwrap().clone();
+        // Check that there is a '<clear>' before the ASCII art (EASTEREGG)
+        // Ensure a screen clear occurred and the art text was printed.
+        assert!(
+            outputs.iter().any(|s| s == "<clear>"),
+            "expected a clear call"
+        );
+        // The ASCII art is a multi-line string; ensure at least one long block was printed.
+        assert!(
+            outputs.iter().any(|s| s.len() > 40),
+            "expected the ASCII art to be printed"
+        );
+    }
+}

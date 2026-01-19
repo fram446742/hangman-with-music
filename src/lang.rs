@@ -1,5 +1,5 @@
 use rand::seq::IndexedRandom;
-use serde_json::{from_str, Value};
+use serde_json::{Value, from_str};
 use std::collections::HashMap;
 
 #[derive(PartialEq, Eq, Hash, Debug, Clone, Copy)]

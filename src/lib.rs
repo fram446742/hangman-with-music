@@ -1,12 +1,12 @@
 use anyhow::Context;
 
+pub mod console;
 pub mod consts;
 pub mod game;
 pub mod hangman;
 pub mod lang;
 pub mod messages;
 pub mod player;
-pub mod console;
 pub mod printer;
 pub mod tools;
 pub mod ui;
@@ -17,7 +17,8 @@ pub fn run() -> anyhow::Result<()> {
         let writer = crate::printer::ColorfulWriter::new(None);
         let boxed_printer: Box<dyn crate::ui::GameUI> = Box::new(writer);
 
-        let mut gd = crate::game::GameData::new(boxed_printer, false).context("Failed to initialize game data")?;
+        let mut gd = crate::game::GameData::new(boxed_printer, false)
+            .context("Failed to initialize game data")?;
         gd.run()?;
         if !gd.ask_retry() {
             break;

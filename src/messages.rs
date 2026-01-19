@@ -69,9 +69,9 @@ impl MessageKey {
     /// assert!(!msg.is_empty());
     /// ```
     pub fn message(&self, language_data: &crate::lang::LanguageData) -> String {
-        language_data.get_message(self.as_str()).unwrap_or_else(|_| {
-            format!("**Missing message for key: {}**", self.as_str())
-        })
+        language_data
+            .get_message(self.as_str())
+            .unwrap_or_else(|_| format!("**Missing message for key: {}**", self.as_str()))
     }
 }
 
@@ -83,7 +83,9 @@ mod tests {
     #[test]
     fn message_matches_get_message_when_present() {
         let ld = LanguageData::load(Language::Global);
-        let expected = ld.get_message(MessageKey::ContinueMessage.as_str()).expect("message present");
+        let expected = ld
+            .get_message(MessageKey::ContinueMessage.as_str())
+            .expect("message present");
         let got = MessageKey::ContinueMessage.message(&ld);
         assert_eq!(got, expected);
 

@@ -38,29 +38,43 @@ impl MusicPlayer {
         let default_zip: &[u8] = include_bytes!("../assets/music.zip");
 
         // Ensure music directory exists and contains songs
-        let mut songs_dir = self.load_songs_from_directory(dir).context("Failed to read music directory")?;
+        let mut songs_dir = self
+            .load_songs_from_directory(dir)
+            .context("Failed to read music directory")?;
         if songs_dir.is_empty() {
-            fs::create_dir_all(dir).with_context(|| format!("Failed to create music directory: {}", dir))?;
+            fs::create_dir_all(dir)
+                .with_context(|| format!("Failed to create music directory: {}", dir))?;
 
             // unzip default songs to dir
             let cursor = std::io::Cursor::new(default_zip);
-            let mut zip = zip::ZipArchive::new(cursor).context("Failed to read bundled music archive")?;
+            let mut zip =
+                zip::ZipArchive::new(cursor).context("Failed to read bundled music archive")?;
             for i in 0..zip.len() {
-                let mut file = zip.by_index(i).context("Failed to access file in archive")?;
+                let mut file = zip
+                    .by_index(i)
+                    .context("Failed to access file in archive")?;
                 if let Some(path_name) = file.enclosed_name()
-                    && let Some(pn) = path_name.file_name() {
-                        let name = pn.to_string_lossy().into_owned();
-                        let outpath = PathBuf::from(dir).join(name);
-                        let mut outfile = fs::File::create(&outpath).with_context(|| format!("Failed to create output file {:?}", outpath))?;
-                        std::io::copy(&mut file, &mut outfile).with_context(|| format!("Failed to copy file contents to {:?}", outpath))?;
-                    }
+                    && let Some(pn) = path_name.file_name()
+                {
+                    let name = pn.to_string_lossy().into_owned();
+                    let outpath = PathBuf::from(dir).join(name);
+                    let mut outfile = fs::File::create(&outpath)
+                        .with_context(|| format!("Failed to create output file {:?}", outpath))?;
+                    std::io::copy(&mut file, &mut outfile).with_context(|| {
+                        format!("Failed to copy file contents to {:?}", outpath)
+                    })?;
+                }
             }
 
-            println!("No songs found in the music directory. Default songs have been extracted. Please restart the application after adding your own music files.");
+            println!(
+                "No songs found in the music directory. Default songs have been extracted. Please restart the application after adding your own music files."
+            );
             sleep(std::time::Duration::from_secs(3));
 
             // reload the directory after extraction
-            songs_dir = self.load_songs_from_directory(dir).context("Failed to read music directory after extraction")?;
+            songs_dir = self
+                .load_songs_from_directory(dir)
+                .context("Failed to read music directory after extraction")?;
         }
 
         // Shuffle the song paths
@@ -97,12 +111,13 @@ impl MusicPlayer {
         for entry in entries.filter_map(Result::ok) {
             let path = entry.path();
             if path.is_file()
-                && let Some(ext) = path.extension() {
-                    let ext_str = ext.to_string_lossy().to_lowercase();
-                    if ["mp3", "wav", "ogg", "flac", "aac"].contains(&ext_str.as_str()) {
-                        song_paths.push(path);
-                    }
+                && let Some(ext) = path.extension()
+            {
+                let ext_str = ext.to_string_lossy().to_lowercase();
+                if ["mp3", "wav", "ogg", "flac", "aac"].contains(&ext_str.as_str()) {
+                    song_paths.push(path);
                 }
+            }
         }
         Ok(song_paths)
     }
@@ -155,9 +170,9 @@ impl MusicPlayer {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use tempfile::tempdir;
     use std::fs::File;
     use std::io::Write;
+    use tempfile::tempdir;
 
     #[test]
     fn load_songs_filters_by_extension() {
@@ -171,7 +186,9 @@ mod tests {
         writeln!(f2, "dummy").unwrap();
 
         let player = MusicPlayer::new();
-        let songs = player.load_songs_from_directory(dir.path().to_str().unwrap()).expect("read dir");
+        let songs = player
+            .load_songs_from_directory(dir.path().to_str().unwrap())
+            .expect("read dir");
         assert_eq!(songs.len(), 1);
         assert!(songs.iter().any(|p| p.ends_with("song1.mp3")));
     }
@@ -181,8 +198,15 @@ mod tests {
         let dir = tempdir().expect("tempdir");
         let mut player = MusicPlayer::new();
         // Init in a fresh dir; it should extract bundled music.zip
-        player.init_in(dir.path().to_str().unwrap()).expect("init_in");
-        let songs = player.load_songs_from_directory(dir.path().to_str().unwrap()).expect("read dir after init");
-        assert!(!songs.is_empty(), "Expected extracted songs in the directory");
+        player
+            .init_in(dir.path().to_str().unwrap())
+            .expect("init_in");
+        let songs = player
+            .load_songs_from_directory(dir.path().to_str().unwrap())
+            .expect("read dir after init");
+        assert!(
+            !songs.is_empty(),
+            "Expected extracted songs in the directory"
+        );
     }
 }

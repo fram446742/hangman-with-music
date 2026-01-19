@@ -1,12 +1,6 @@
 pub use crate::console::{
-    clear,
-    read_char,
-    read_input,
-    read_pass,
-    random_color,
-    Console,
-    StdConsole,
-}; 
+    Console, StdConsole, clear, random_color, read_char, read_input, read_pass,
+};
 
 #[cfg(test)]
 mod tests {

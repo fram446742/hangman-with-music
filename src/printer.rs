@@ -3,8 +3,8 @@ use termcolor::{Color, ColorChoice, ColorSpec, StandardStream, WriteColor};
 
 use crate::{
     lang::{Language, LanguageData},
-    tools::random_color,
     messages::MessageKey,
+    tools::random_color,
     ui::GameUI,
 };
 
@@ -32,7 +32,11 @@ impl ColorfulWriter {
             language_data,
         };
 
-        let mut instance = ColorfulWriter { stdout, color: Some(random_color()), lang };
+        let mut instance = ColorfulWriter {
+            stdout,
+            color: Some(random_color()),
+            lang,
+        };
         instance.set_language();
 
         instance
@@ -121,13 +125,29 @@ impl ColorfulWriter {
 impl crate::console::Console for ColorfulWriter {}
 
 impl GameUI for ColorfulWriter {
-    fn print_message(&mut self, key: MessageKey, color: Option<Color>, extras: Option<&str>, bold: bool) -> Result<()> {
+    fn print_message(
+        &mut self,
+        key: MessageKey,
+        color: Option<Color>,
+        extras: Option<&str>,
+        bold: bool,
+    ) -> Result<()> {
         self.write_message(key, color, extras, bold)
     }
 
     fn print_colored(&mut self, text: &str, color: Option<Color>, bold: bool) -> Result<()> {
         self.write_colored(text, color, bold)
     }
+
+    // fn print_screen_message(&mut self, key: MessageKey, color: Option<Color>, extras: Option<&str>, bold: bool) -> Result<()> {
+    //     crate::console::clear();
+    //     self.write_message(key, color, extras, bold)
+    // }
+
+    // fn print_colored_screen(&mut self, text: &str, color: Option<Color>, bold: bool) -> Result<()> {
+    //     crate::console::clear();
+    //     self.write_colored(text, color, bold)
+    // }
 
     fn read_input(&self) -> String {
         crate::console::read_input()
