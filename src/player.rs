@@ -1,3 +1,5 @@
+use crate::messages::MessageKey;
+use crate::ui::GameUI;
 use anyhow::{Context, Result};
 use rand::seq::SliceRandom;
 use std::path::PathBuf;
@@ -28,12 +30,12 @@ impl Default for MusicPlayer {
 
 impl MusicPlayer {
     // Initialize the music player with shuffled songs from ./music
-    pub fn init(&mut self) -> Result<()> {
-        self.init_in("./music")
+    pub fn init(&mut self, printer: Option<&mut dyn GameUI>) -> Result<()> {
+        self.init_in("./music", printer)
     }
 
     /// Variant of `init` that allows specifying the target directory (useful for tests)
-    pub fn init_in(&mut self, dir: &str) -> Result<()> {
+    pub fn init_in(&mut self, dir: &str, printer: Option<&mut dyn GameUI>) -> Result<()> {
         // Use the bundled default music archive (if present)
         let default_zip: &[u8] = include_bytes!("../assets/music.zip");
 
@@ -66,9 +68,14 @@ impl MusicPlayer {
                 }
             }
 
-            println!(
-                "No songs found in the music directory. Default songs have been extracted. Please restart the application after adding your own music files."
-            );
+            if let Some(p) = printer {
+                p.safe_print_message(MessageKey::MusicExtracted, None, None, false, "MusicInit");
+            } else {
+                crate::logger::log_error(
+                    "Music init",
+                    "No songs found in the music directory; default songs extracted.",
+                );
+            }
             sleep(std::time::Duration::from_secs(3));
 
             // reload the directory after extraction
@@ -154,13 +161,30 @@ impl MusicPlayer {
     }
 
     // Add and play a single test song
-    pub fn play_test_song(&self, filename: &str, path: &str) -> Result<()> {
+    pub fn play_test_song(
+        &self,
+        filename: &str,
+        path: &str,
+        printer: Option<&mut dyn GameUI>,
+    ) -> Result<()> {
         let song = Song::from(filename.into(), path.into());
         self.player.clear();
         self.player.add(song);
         self.player.use_auto_play();
-        println!("Playing test song");
-        println!("{:?}", self.player.waiting_list());
+        if let Some(p) = printer {
+            p.safe_print_message(MessageKey::PlayingTestSong, None, None, false, "PlayTest");
+            if let Ok(queue) = self.player.waiting_list().join() {
+                p.safe_print_message(
+                    MessageKey::MusicQueue,
+                    None,
+                    Some(&format!("{:?}", queue)),
+                    false,
+                    "MusicQueue",
+                );
+            }
+        } else {
+            crate::logger::log_error("Music", "Playing test song");
+        }
 
         self.player.play();
         Ok(())
@@ -199,7 +223,7 @@ mod tests {
         let mut player = MusicPlayer::new();
         // Init in a fresh dir; it should extract bundled music.zip
         player
-            .init_in(dir.path().to_str().unwrap())
+            .init_in(dir.path().to_str().unwrap(), None)
             .expect("init_in");
         let songs = player
             .load_songs_from_directory(dir.path().to_str().unwrap())

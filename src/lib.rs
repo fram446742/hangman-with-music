@@ -5,11 +5,15 @@ pub mod consts;
 pub mod game;
 pub mod hangman;
 pub mod lang;
+pub mod logger;
 pub mod messages;
 pub mod player;
 pub mod printer;
 pub mod tools;
 pub mod ui;
+
+#[cfg(test)]
+pub mod test_utils;
 
 /// Run the application in a loop. Returns an error if initialization fails.
 pub fn run() -> anyhow::Result<()> {

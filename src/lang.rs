@@ -57,7 +57,10 @@ impl LanguageData {
         let data: Value = match from_str(file_content) {
             Ok(v) => v,
             Err(e) => {
-                eprintln!("Failed to parse language file for {}: {}", lang_code, e);
+                crate::logger::log_error(
+                    &format!("Failed to parse language file for {}", lang_code),
+                    &format!("{}", e),
+                );
                 Value::Object(serde_json::Map::new())
             }
         };

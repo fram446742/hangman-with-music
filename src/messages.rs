@@ -24,6 +24,10 @@ pub enum MessageKey {
     GuessedLetters,
     Congratulations,
     GameOver,
+    // Music related
+    MusicExtracted,
+    PlayingTestSong,
+    MusicQueue,
 }
 
 impl MessageKey {
@@ -53,6 +57,9 @@ impl MessageKey {
             MessageKey::GuessedLetters => "GuessedLetters",
             MessageKey::Congratulations => "Congratulations",
             MessageKey::GameOver => "GameOver",
+            MessageKey::MusicExtracted => "MusicExtracted",
+            MessageKey::PlayingTestSong => "PlayingTestSong",
+            MessageKey::MusicQueue => "MusicQueue",
         }
     }
 

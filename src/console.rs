@@ -12,7 +12,7 @@ pub fn read_input() -> String {
     match io::stdin().read_line(&mut input) {
         Ok(_) => input.trim_end().to_string(),
         Err(e) => {
-            eprintln!("Failed to read input: {}", e);
+            crate::logger::log_error("Failed to read input", &format!("{}", e));
             String::new()
         }
     }
@@ -28,7 +28,7 @@ pub fn read_pass() -> String {
     match read_password() {
         Ok(s) => s,
         Err(e) => {
-            eprintln!("Failed to read password: {}", e);
+            crate::logger::log_error("Failed to read password", &format!("{}", e));
             String::new()
         }
     }
@@ -38,7 +38,7 @@ pub fn read_pass() -> String {
 pub fn clear() {
     print!("\x1B[2J\x1B[1;1H");
     if let Err(e) = io::stdout().flush() {
-        eprintln!("Failed to flush stdout: {}", e);
+        crate::logger::log_error("Failed to flush stdout", &format!("{}", e));
     }
 }
 

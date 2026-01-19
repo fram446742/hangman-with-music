@@ -26,13 +26,16 @@ pub trait GameUI {
         context: &str,
     ) {
         if let Err(e) = self.print_message(key, color, extras, bold) {
-            eprintln!("Failed to print {} {:?}: {}", context, key, e);
+            crate::logger::log_error(
+                &format!("Failed to print {} {:?}", context, key),
+                &format!("{}", e),
+            );
         }
     }
 
     fn safe_print_colored(&mut self, text: &str, color: Option<Color>, bold: bool, context: &str) {
         if let Err(e) = self.print_colored(text, color, bold) {
-            eprintln!("Failed to print {}: {}", context, e);
+            crate::logger::log_error(&format!("Failed to print {}", context), &format!("{}", e));
         }
     }
 
@@ -46,7 +49,10 @@ pub trait GameUI {
     ) {
         self.clear();
         if let Err(e) = self.print_message(key, color, extras, bold) {
-            eprintln!("Failed to print screen {} {:?}: {}", context, key, e);
+            crate::logger::log_error(
+                &format!("Failed to print screen {} {:?}", context, key),
+                &format!("{}", e),
+            );
         }
     }
 
@@ -59,7 +65,10 @@ pub trait GameUI {
     ) {
         self.clear();
         if let Err(e) = self.print_colored(text, color, bold) {
-            eprintln!("Failed to print colored screen {}: {}", context, e);
+            crate::logger::log_error(
+                &format!("Failed to print colored screen {}", context),
+                &format!("{}", e),
+            );
         }
     }
 

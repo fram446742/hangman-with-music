@@ -176,43 +176,7 @@ mod tests {
     use super::*;
     use crate::lang::Language;
 
-    struct DummyPrinter;
-    impl GameUI for DummyPrinter {
-        fn print_message(
-            &mut self,
-            _key: crate::messages::MessageKey,
-            _color: Option<termcolor::Color>,
-            _extras: Option<&str>,
-            _bold: bool,
-        ) -> std::io::Result<()> {
-            Ok(())
-        }
-        fn print_colored(
-            &mut self,
-            _text: &str,
-            _color: Option<termcolor::Color>,
-            _bold: bool,
-        ) -> std::io::Result<()> {
-            Ok(())
-        }
-        fn read_input(&self) -> String {
-            String::new()
-        }
-        fn read_char(&self) -> Option<char> {
-            None
-        }
-        fn read_pass(&self) -> String {
-            String::new()
-        }
-        fn clear(&self) {}
-        fn set_color(&mut self, _color: Option<termcolor::Color>) {}
-        fn change_language(&mut self) {}
-        fn get_language_data(&self) -> &crate::lang::LanguageData {
-            static LD: once_cell::sync::OnceCell<crate::lang::LanguageData> =
-                once_cell::sync::OnceCell::new();
-            LD.get_or_init(|| crate::lang::LanguageData::load(Language::Global))
-        }
-    }
+    use crate::test_utils::DummyPrinter;
 
     #[test]
     fn lives_getter_and_setter_work() {
