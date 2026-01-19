@@ -38,7 +38,8 @@ impl ColorfulWriter {
         instance
     }
 
-    pub fn print_colored_message(&mut self, text: &str, color: Option<Color>, bold: bool) -> Result<()> {
+    /// Writes colored text to the underlying `StandardStream`.
+    pub fn write_colored(&mut self, text: &str, color: Option<Color>, bold: bool) -> Result<()> {
         let mut color_spec = ColorSpec::new();
         color_spec.set_bold(bold);
         color_spec.set_fg(color.or(self.color));
@@ -50,7 +51,9 @@ impl ColorfulWriter {
         Ok(())
     }
 
-    pub fn print_message(
+    /// Lookup a message by `MessageKey`, format it with `extras` if provided
+    /// and write it to the terminal with optional color/bold.
+    pub fn write_message(
         &mut self,
         key: MessageKey,
         color: Option<Color>,
@@ -69,12 +72,12 @@ impl ColorfulWriter {
             message
         };
 
-        self.print_colored_message(&full_message, color, bold)
+        self.write_colored(&full_message, color, bold)
     }
 
     fn ask_language(&mut self) -> Language {
-        let _ = self.print_message(MessageKey::LanguageMenu, Some(Color::White), None, false);
-        let input = crate::tools::read_input().trim().to_uppercase();
+        let _ = self.write_message(MessageKey::LanguageMenu, Some(Color::White), None, false);
+        let input = crate::console::read_input().trim().to_uppercase();
 
         match input.as_str() {
             "1" => Language::English,
@@ -90,62 +93,67 @@ impl ColorfulWriter {
         }
     }
 
+    /// Interactively ask the user for a language and reload messages.
     fn set_language(&mut self) {
         self.lang.language = self.ask_language();
         self.lang.language_data = LanguageData::load(self.lang.language);
     }
 
-    // fn get_language(&self) -> Language {
-    //     self.lang.language
-    // }
-
-    pub fn get_language_data(&self) -> &LanguageData {
+    /// Returns a reference to the current `LanguageData`.
+    pub fn language_data(&self) -> &LanguageData {
         &self.lang.language_data
     }
 
-    pub fn change_language(&mut self) {
+    /// Trigger an interactive language change.
+    pub fn change_language_interactive(&mut self) {
         self.set_language();
     }
 
-    pub fn set_color(&mut self, color: Option<Color>) {
+    /// Set the theme color used as default when no explicit color is passed
+    /// to `write_message`/`write_colored`.
+    pub fn set_theme_color(&mut self, color: Option<Color>) {
         self.color = color;
     }
 }
 
+/// Implement `Console` trait for `ColorfulWriter` so it can be used where a
+/// console is required in tests or other components.
+impl crate::console::Console for ColorfulWriter {}
+
 impl GameUI for ColorfulWriter {
     fn print_message(&mut self, key: MessageKey, color: Option<Color>, extras: Option<&str>, bold: bool) -> Result<()> {
-        self.print_message(key, color, extras, bold)
+        self.write_message(key, color, extras, bold)
     }
 
     fn print_colored(&mut self, text: &str, color: Option<Color>, bold: bool) -> Result<()> {
-        self.print_colored_message(text, color, bold)
+        self.write_colored(text, color, bold)
     }
 
     fn read_input(&self) -> String {
-        crate::tools::read_input()
+        crate::console::read_input()
     }
 
     fn read_char(&self) -> Option<char> {
-        crate::tools::read_char()
+        crate::console::read_char()
     }
 
     fn read_pass(&self) -> String {
-        crate::tools::read_pass()
+        crate::console::read_pass()
     }
 
     fn clear(&self) {
-        crate::tools::clear();
+        crate::console::clear();
     }
 
     fn set_color(&mut self, color: Option<Color>) {
-        self.set_color(color);
+        self.set_theme_color(color);
     }
 
     fn change_language(&mut self) {
-        self.change_language();
+        self.change_language_interactive();
     }
 
     fn get_language_data(&self) -> &LanguageData {
-        self.get_language_data()
+        self.language_data()
     }
 }

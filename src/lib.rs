@@ -6,6 +6,7 @@ pub mod hangman;
 pub mod lang;
 pub mod messages;
 pub mod player;
+pub mod console;
 pub mod printer;
 pub mod tools;
 pub mod ui;
@@ -18,9 +19,7 @@ pub fn run() -> anyhow::Result<()> {
 
         let mut gd = crate::game::GameData::new(boxed_printer, false).context("Failed to initialize game data")?;
         gd.run()?;
-        let _ = gd.printer.print_message(crate::messages::MessageKey::RetryPrompt, None, None, false);
-        let input = gd.printer.read_input().trim().to_uppercase();
-        if input != "S" && input != "Y" {
+        if !gd.ask_retry() {
             break;
         }
     }

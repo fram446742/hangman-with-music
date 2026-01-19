@@ -55,4 +55,39 @@ impl MessageKey {
             MessageKey::GameOver => "GameOver",
         }
     }
+
+    /// Convenience method that returns the localized message text or a sensible
+    /// fallback if the message is missing from the loaded `LanguageData`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use hangman::lang::{LanguageData, Language};
+    /// use hangman::messages::MessageKey;
+    /// let ld = LanguageData::load(Language::Global);
+    /// let msg = MessageKey::ContinueMessage.message(&ld);
+    /// assert!(!msg.is_empty());
+    /// ```
+    pub fn message(&self, language_data: &crate::lang::LanguageData) -> String {
+        language_data.get_message(self.as_str()).unwrap_or_else(|_| {
+            format!("**Missing message for key: {}**", self.as_str())
+        })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::lang::{Language, LanguageData};
+
+    #[test]
+    fn message_matches_get_message_when_present() {
+        let ld = LanguageData::load(Language::Global);
+        let expected = ld.get_message(MessageKey::ContinueMessage.as_str()).expect("message present");
+        let got = MessageKey::ContinueMessage.message(&ld);
+        assert_eq!(got, expected);
+
+        // ensure get_message returns Err for a non-existing key
+        assert!(ld.get_message("__no_such_key__").is_err());
+    }
 }

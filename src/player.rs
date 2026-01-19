@@ -10,7 +10,6 @@ pub struct MusicPlayer {
     pub player: SharedPlayer,
 }
 
-#[allow(dead_code)]
 impl MusicPlayer {
     // Create a new MusicPlayer instance
     pub fn new() -> Self {
@@ -18,12 +17,22 @@ impl MusicPlayer {
         MusicPlayer { player }
     }
 
+    // Implement Default to satisfy clippy's `new_without_default` lint
+}
+
+impl Default for MusicPlayer {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl MusicPlayer {
     // Initialize the music player with shuffled songs from ./music
     pub fn init(&mut self) -> Result<()> {
         self.init_in("./music")
     }
 
-    /// Variant of init that allows specifying the target directory (useful for tests)
+    /// Variant of `init` that allows specifying the target directory (useful for tests)
     pub fn init_in(&mut self, dir: &str) -> Result<()> {
         // Use the bundled default music archive (if present)
         let default_zip: &[u8] = include_bytes!("../assets/music.zip");
@@ -114,10 +123,14 @@ impl MusicPlayer {
         self.player.toggle();
     }
 
-    // Clear the player
+    // Clear the player and ensure the waiting list is drained so the
+    // operation is observed immediately by callers (useful for deterministic testing).
     pub fn clear(&mut self) {
         self.player.stop();
         self.player.clear();
+        // Drain the waiting list to ensure any background state is synchronously
+        // observed by the caller.
+        let _ = self.player.waiting_list().join();
     }
 
     // Show the waiting list

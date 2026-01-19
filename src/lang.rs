@@ -23,6 +23,10 @@ pub struct LanguageData {
 }
 
 impl LanguageData {
+    /// Load language data (messages and words) for the requested `language`.
+    ///
+    /// Falls back to an empty set of messages/words if the locale file cannot
+    /// be parsed.
     pub fn load(language: Language) -> Self {
         let lang_code = match language {
             Language::Spanish => "es",
@@ -80,6 +84,17 @@ impl LanguageData {
         Self { messages, words }
     }
 
+    /// Return the localized message text for `key` or an error if the key is
+    /// not present in the loaded locale.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use hangman::lang::{LanguageData, Language};
+    /// let ld = LanguageData::load(Language::Global);
+    /// let msg = ld.get_message("ContinueMessage").expect("message present");
+    /// assert!(!msg.is_empty());
+    /// ```
     pub fn get_message(&self, key: &str) -> Result<String, String> {
         self.messages
             .get(key)
@@ -87,7 +102,10 @@ impl LanguageData {
             .ok_or_else(|| format!("Message with key '{}' not found", key))
     }
 
+    /// Get a random word from the loaded word list, or `None` if there are no
+    /// words available for the selected language.
     pub fn get_random_word(&self) -> Option<String> {
-        self.words.choose(&mut rand::rng()).cloned()
+        let mut rng = rand::rng();
+        self.words.choose(&mut rng).cloned()
     }
 }
